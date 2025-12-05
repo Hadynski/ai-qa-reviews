@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex';
 import { transcribeCall } from '@/lib/daktela/transcribe-call';
+import { analyzeCall } from '@/lib/qa/analyze-call';
 import { HumanQaReview } from '@/types/qa';
+import type { Langfuse } from 'langfuse';
 
 interface ProcessReviewRequest {
   activityName: string;
@@ -49,21 +51,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(results, { status: 500 });
     }
 
-    // Step 2: Run AI analysis
+    // Step 2: Run AI analysis (direct call, no HTTP)
     try {
-      const baseUrl = request.nextUrl.origin;
-      const analyzeResponse = await fetch(`${baseUrl}/api/qa/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callId, force: forceTranscribe }),
-      });
+      const langfuse = (global as any).langfuse as Langfuse | undefined;
+      const analyzeResult = await analyzeCall(callId, forceTranscribe, langfuse);
 
-      const analyzeData = await analyzeResponse.json();
-
-      if (analyzeResponse.ok && analyzeData.success !== false) {
+      if (analyzeResult.success) {
         results.aiAnalysis = true;
       } else {
-        results.error = `AI analysis failed: ${analyzeData.error || 'Unknown error'}`;
+        results.error = `AI analysis failed: ${analyzeResult.error || 'Unknown error'}`;
         results.aiAnalysis = false;
       }
     } catch (error) {
