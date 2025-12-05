@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex';
+import { transcribeCall } from '@/lib/daktela/transcribe-call';
 import { HumanQaReview } from '@/types/qa';
 
 interface ProcessReviewRequest {
@@ -25,7 +26,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const baseUrl = request.nextUrl.origin;
     const results: {
       transcription: boolean;
       transcriptionFromCache: boolean;
@@ -39,22 +39,11 @@ export async function POST(request: NextRequest) {
       humanQaReview: false,
     };
 
-    // Step 1: Get or create transcription
+    // Step 1: Get or create transcription (direct call, no HTTP)
     try {
-      const transcribeUrl = forceTranscribe
-        ? `${baseUrl}/api/daktela/transcribe/${activityName}?callId=${callId}&force=true`
-        : `${baseUrl}/api/daktela/transcribe/${activityName}?callId=${callId}`;
-      const transcribeResponse = await fetch(transcribeUrl, { method: 'POST' });
-
-      if (transcribeResponse.ok) {
-        const transcribeData = await transcribeResponse.json();
-        results.transcription = true;
-        results.transcriptionFromCache = transcribeData.fromCache || false;
-      } else {
-        const errorData = await transcribeResponse.json();
-        results.error = `Transcription failed: ${errorData.error || 'Unknown error'}`;
-        return NextResponse.json(results, { status: 500 });
-      }
+      const transcribeResult = await transcribeCall(activityName, callId, forceTranscribe);
+      results.transcription = true;
+      results.transcriptionFromCache = transcribeResult.fromCache;
     } catch (error) {
       results.error = `Transcription error: ${error instanceof Error ? error.message : 'Unknown error'}`;
       return NextResponse.json(results, { status: 500 });
@@ -62,6 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Run AI analysis
     try {
+      const baseUrl = request.nextUrl.origin;
       const analyzeResponse = await fetch(`${baseUrl}/api/qa/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
