@@ -1,13 +1,11 @@
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/convex";
 import { getDaktelaToken } from "@/lib/daktela-token";
 import type {
   DaktelaActivity,
   DaktelaActivitiesResponse,
   MappedCallRecord,
 } from "@/types/daktela";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 function mapActivityToCallRecord(activity: DaktelaActivity): MappedCallRecord {
   const callItem = activity.item;
@@ -59,6 +57,7 @@ export interface SyncCallsResult {
 }
 
 export async function syncCallsFromDaktela(): Promise<SyncCallsResult> {
+  const convex = getConvexClient();
   const token = await getDaktelaToken();
   const daktelaUrl = process.env.DAKTELA_URL?.replace(/\/+$/, "");
 

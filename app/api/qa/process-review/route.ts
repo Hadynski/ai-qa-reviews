@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
+import { getConvexClient } from '@/lib/convex';
 import { HumanQaReview } from '@/types/qa';
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 interface ProcessReviewRequest {
   activityName: string;
@@ -84,6 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Save human QA review
     try {
+      const convex = getConvexClient();
       const humanQaReview: HumanQaReview = {
         reviewId,
         activityName,

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/convex";
 import { getDaktelaToken } from "@/lib/daktela-token";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ activityName: string }> }
 ) {
   try {
+    const convex = getConvexClient();
     const { activityName } = await params;
 
     if (!activityName) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/convex";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
@@ -8,8 +8,6 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import type { Langfuse } from "langfuse";
 import type { QaQuestion, QaResult } from "@/types/qa";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 const qaResponseSchema = z.object({
   answer: z.string().describe("The selected answer from the possible answers list"),
@@ -39,6 +37,7 @@ export async function POST(request: NextRequest) {
   });
 
   try {
+    const convex = getConvexClient();
     const body = await request.json();
     const { callId, force = false } = body;
 
