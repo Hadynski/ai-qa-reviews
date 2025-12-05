@@ -65,10 +65,25 @@ export async function POST(
 
     const audioUrl = `${daktelaUrl}/file/recording/${activityName}?accessToken=${token}`;
 
-    const audioResponse = await fetch(audioUrl);
+    console.log(`Fetching audio from: ${daktelaUrl}/file/recording/${activityName}`);
+
+    let audioResponse: Response;
+    try {
+      audioResponse = await fetch(audioUrl, {
+        headers: {
+          "X-AUTH-TOKEN": token,
+        },
+      });
+    } catch (fetchError) {
+      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      console.error(`Audio fetch network error: ${errorMessage}`);
+      throw new Error(`Failed to fetch audio from Daktela (network error): ${errorMessage}`);
+    }
 
     if (!audioResponse.ok) {
-      throw new Error(`Failed to fetch audio from Daktela: ${audioResponse.statusText}`);
+      const errorBody = await audioResponse.text().catch(() => 'Unable to read error body');
+      console.error(`Audio fetch HTTP error: ${audioResponse.status} ${audioResponse.statusText} - ${errorBody}`);
+      throw new Error(`Failed to fetch audio from Daktela: ${audioResponse.status} ${audioResponse.statusText}`);
     }
 
     // Convert to buffer
