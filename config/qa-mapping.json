@@ -1,0 +1,27 @@
+{
+  "description": "Mapping between AI question IDs and Daktela human QA review question keys. In this case, they use the same identifiers.",
+  "mappings": {
+    "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na": "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na",
+    "ds_pytanie_o_imie_i_intencja_tego_po_co_nam": "ds_pytanie_o_imie_i_intencja_tego_po_co_nam",
+    "ds_weryfikacja_z_jakim_typem_klienta_mamy_stycznosc": "ds_weryfikacja_z_jakim_typem_klienta_mamy_stycznosc",
+    "ds_intencja_do_pytan": "ds_intencja_do_pytan",
+    "ds_czy_pozyskano_informacje_o_kwocie": "ds_czy_pozyskano_informacje_o_kwocie",
+    "ds_czy_pozyskano_jaki_czas_zalega": "ds_czy_pozyskano_jaki_czas_zalega",
+    "ds_czy_to_pierwsza_taka_sytuacja": "ds_czy_to_pierwsza_taka_sytuacja",
+    "ds_czy_pozyskano_informacje_o_wymowkach": "ds_czy_pozyskano_informacje_o_wymowkach",
+    "ds__czy_pozyskano_informacje_o_krokach_prawnych_podjetych_przez_klienta": "ds__czy_pozyskano_informacje_o_krokach_prawnych_podjetych_przez_klienta",
+    "ds__czy_pozyskano_informacje_o_tym_co_klient_do_tej_pory_zrobil_w_sprawie": "ds__czy_pozyskano_informacje_o_tym_co_klient_do_tej_pory_zrobil_w_sprawie",
+    "ds_pobranie_danych_i_intencja_do_pobrania": "ds_pobranie_danych_i_intencja_do_pobrania",
+    "ds_pytanie_o_dalsza_wspolprace_z_dluznikiem_i_modulowanie": "ds_pytanie_o_dalsza_wspolprace_z_dluznikiem_i_modulowanie",
+    "ds_zaskoczenie_tym_ze_mamy_dluznika_w_systemie__2_pytania": "ds_zaskoczenie_tym_ze_mamy_dluznika_w_systemie__2_pytania",
+    "ds_nadanie_wartosci_przeprowadzanej_analizie__ograniczenie": "ds_nadanie_wartosci_przeprowadzanej_analizie__ograniczenie",
+    "ds_przedstawienie_dalszych_krokow_analizy_i_modulowanie": "ds_przedstawienie_dalszych_krokow_analizy_i_modulowanie",
+    "ds_informacja_o_bezplatnej": "ds_informacja_o_bezplatnej",
+    "ds_zwracanie_sie_do_klienta_po": "ds_zwracanie_sie_do_klienta_po",
+    "ds_pauzy_w_rozmowie": "ds_pauzy_w_rozmowie",
+    "ds_brak_informacji_o_warunkach_wspolpracy_cenasankcjenota": "ds_brak_informacji_o_warunkach_wspolpracy_cenasankcjenota",
+    "ds_umowienie_sie_na_rozmowe_z_analiza_dluznika": "ds_umowienie_sie_na_rozmowe_z_analiza_dluznika",
+    "ds_zbijanie_obiekcji__minimum_dw": "ds_zbijanie_obiekcji__minimum_dw",
+    "ds_budowanie_relacji": "ds_budowanie_relacji"
+  }
+}
