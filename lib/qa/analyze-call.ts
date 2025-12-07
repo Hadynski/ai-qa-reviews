@@ -15,8 +15,17 @@ const qaResponseSchema = z.object({
 
 function extractRetryDelay(error: unknown): number | null {
   const errorStr = String(error);
-  const match = errorStr.match(/retry(?:Delay)?[:\s]+["']?(\d+(?:\.\d+)?)\s*s/i);
-  return match ? Math.ceil(parseFloat(match[1]) * 1000) : null;
+  const patterns = [
+    /retry\s+in\s+(\d+(?:\.\d+)?)\s*s/i,
+    /"retryDelay":\s*"(\d+(?:\.\d+)?)\s*s"/i,
+  ];
+  for (const pattern of patterns) {
+    const match = errorStr.match(pattern);
+    if (match) {
+      return Math.ceil(parseFloat(match[1]) * 1000);
+    }
+  }
+  return null;
 }
 
 export interface AnalyzeCallResult {
