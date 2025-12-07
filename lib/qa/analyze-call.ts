@@ -13,6 +13,12 @@ const qaResponseSchema = z.object({
   justification: z.string().describe("One sentence explaining why this answer was chosen based on the transcription"),
 });
 
+function extractRetryDelay(error: unknown): number | null {
+  const errorStr = String(error);
+  const match = errorStr.match(/retry(?:Delay)?[:\s]+["']?(\d+(?:\.\d+)?)\s*s/i);
+  return match ? Math.ceil(parseFloat(match[1]) * 1000) : null;
+}
+
 export interface AnalyzeCallResult {
   success: boolean;
   results: QaResult[];
@@ -164,24 +170,26 @@ Select the most appropriate answer and provide a one-sentence justification base
           } catch (err) {
             lastError = err instanceof Error ? err : new Error(String(err));
 
-            const errorString = String(err);
-            const isProhibitedContent = errorString.includes("PROHIBITED_CONTENT") ||
-              lastError.message.includes("PROHIBITED_CONTENT");
+            const errorString = lastError.message + String(err);
+            const isProhibitedContent = errorString.includes("PROHIBITED_CONTENT");
 
             if (isProhibitedContent) {
               throw new Error("Content blocked by safety filters (PROHIBITED_CONTENT)");
             }
+            const isOverloaded = errorString.includes("overloaded") ||
+                                 errorString.includes("503") ||
+                                 errorString.includes("UNAVAILABLE");
+            const isRateLimited = errorString.includes("429") ||
+                                  errorString.includes("RESOURCE_EXHAUSTED") ||
+                                  errorString.includes("quota");
+            const isRetryable = isOverloaded || isRateLimited;
 
-            const isOverloaded = lastError.message.includes("overloaded") ||
-                                 lastError.message.includes("503") ||
-                                 lastError.message.includes("UNAVAILABLE");
-
-            if (isOverloaded && attempt < maxRetries) {
-              const delayMs = baseDelayMs * Math.pow(2, attempt - 1);
-              console.log(`Model overloaded (attempt ${attempt}/${maxRetries}), retrying in ${delayMs / 1000}s...`);
+            if (isRetryable && attempt < maxRetries) {
+              const apiDelay = isRateLimited ? extractRetryDelay(err) : null;
+              const delayMs = apiDelay ?? baseDelayMs * Math.pow(2, attempt - 1);
+              const reason = isRateLimited ? "Rate limited" : "Model overloaded";
+              console.log(`${reason} (attempt ${attempt}/${maxRetries}), retrying in ${delayMs / 1000}s...`);
               await delay(delayMs);
-            } else if (!isOverloaded) {
-              throw err;
             } else {
               throw err;
             }
