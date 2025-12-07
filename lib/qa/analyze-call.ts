@@ -96,10 +96,6 @@ export async function analyzeCall(
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
 
-      if (i > 0) {
-        await delay(4000);
-      }
-
       console.log(`Processing question ${i + 1}/${questions.length}: ${question.id}`);
 
       const agentInfo = agentName ? `Agent prowadzący rozmowę: ${agentName}.\n` : '';
