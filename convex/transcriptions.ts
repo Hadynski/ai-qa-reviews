@@ -161,3 +161,57 @@ export const deleteTranscription = mutation({
     }
   },
 });
+
+export const getPromptAnalysisData = query({
+  args: {
+    questionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const transcriptions = await ctx.db
+      .query("transcriptions")
+      .collect();
+
+    const withBothReviews = transcriptions.filter(
+      (t) => t.qaAnalysis && t.humanQaReview
+    );
+
+    const comparisons = withBothReviews.flatMap((t) => {
+      const aiResults = t.qaAnalysis!.results;
+      const humanAnswers = t.humanQaReview!.qareviewAnswers as Record<string, string[]>;
+
+      return aiResults
+        .filter((ai) => !args.questionId || ai.questionId === args.questionId)
+        .map((ai) => {
+          const humanAnswer = humanAnswers[ai.questionId];
+          const aiNormalized = ai.answer.toLowerCase().trim();
+          const humanNormalized = humanAnswer?.[0]?.toLowerCase().trim();
+
+          return {
+            callId: t.callId,
+            questionId: ai.questionId,
+            question: ai.question,
+            aiAnswer: ai.answer,
+            aiJustification: ai.justification,
+            humanAnswer: humanAnswer?.[0] ?? null,
+            isMatch: aiNormalized === humanNormalized,
+            transcriptExcerpt: t.text.slice(0, 500),
+          };
+        });
+    });
+
+    const disagreements = comparisons.filter((c) => !c.isMatch && c.humanAnswer);
+
+    const stats = {
+      totalComparisons: comparisons.length,
+      matches: comparisons.filter((c) => c.isMatch).length,
+      disagreements: disagreements.length,
+      aiOnly: comparisons.filter((c) => !c.humanAnswer).length,
+    };
+
+    return {
+      stats,
+      disagreements,
+      allComparisons: comparisons,
+    };
+  },
+});
