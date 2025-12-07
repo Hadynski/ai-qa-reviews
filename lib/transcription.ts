@@ -2,8 +2,31 @@ import Groq, { toFile } from "groq-sdk";
 import ffmpeg from "fluent-ffmpeg";
 import { execSync } from "child_process";
 import { writeFile, readFile, unlink } from "fs/promises";
+import { readFileSync, existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+
+interface WhisperVocabulary {
+  companyName?: string;
+}
+
+function buildWhisperPrompt(agentName?: string): string | undefined {
+  const vocabPath = join(process.cwd(), "config/whisper-vocabulary.json");
+  if (!existsSync(vocabPath)) return undefined;
+
+  try {
+    const vocab: WhisperVocabulary = JSON.parse(
+      readFileSync(vocabPath, "utf-8")
+    );
+
+    const company = vocab.companyName ?? "firmy windykacyjnej";
+    const agent = agentName ? `Agent ${agentName} rozmawia` : "Agent rozmawia";
+
+    return `Rozmowa telefoniczna konsultanta windykacyjnego z firmy ${company}. ${agent} z klientem w sprawie informacji o dłużniku i jego sytuacji finansowej.`;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface TranscriptionResult {
   text: string;
@@ -61,7 +84,8 @@ export async function upsampleAudio(audioBuffer: Buffer): Promise<Buffer> {
 export async function transcribeWithWhisper(
   audioBuffer: Buffer,
   filename: string,
-  language: string = "pl"
+  language: string = "pl",
+  agentName?: string
 ): Promise<TranscriptionResult> {
   const groqApiKey = process.env.GROQ_API_KEY;
   if (!groqApiKey) {
@@ -76,6 +100,7 @@ export async function transcribeWithWhisper(
     file: await toFile(upsampledBuffer, filename),
     model: "whisper-large-v3-turbo",
     language,
+    prompt: buildWhisperPrompt(agentName),
   });
 
   return {

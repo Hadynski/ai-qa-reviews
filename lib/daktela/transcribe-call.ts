@@ -75,9 +75,14 @@ export async function transcribeCall(
 
   const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
 
+  const call = await convex.query(api.calls.getByCallId, { callId });
+  const agentName = call?.agentName ?? undefined;
+
   const transcription = await transcribeWithWhisper(
     audioBuffer,
-    `${activityName}.wav`
+    `${activityName}.wav`,
+    "pl",
+    agentName
   );
 
   const transcriptionData = {
