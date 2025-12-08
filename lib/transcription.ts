@@ -100,6 +100,9 @@ export async function transcribeWithDeepgram(
   const deepgram = createClient(apiKey);
   const keyterms = buildKeyterms(agentName);
 
+  console.log(`[Deepgram] Starting transcription, buffer size: ${audioBuffer.length} bytes, language: ${language}`);
+  const startTime = Date.now();
+
   const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
     audioBuffer,
     {
@@ -113,9 +116,14 @@ export async function transcribeWithDeepgram(
     }
   );
 
+  const duration = Date.now() - startTime;
+
   if (error) {
+    console.error(`[Deepgram] Failed after ${duration}ms. Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     throw new Error(`Deepgram transcription failed: ${error.message}`);
   }
+
+  console.log(`[Deepgram] Completed successfully in ${duration}ms`);
 
   const channel = result.results.channels[0];
   const alternative = channel.alternatives[0];
