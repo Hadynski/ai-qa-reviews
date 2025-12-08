@@ -55,3 +55,14 @@ export interface QaComparison {
     agreementPercentage: number;
   };
 }
+
+export interface ClientQuestionReview {
+  questionId: string;
+  comment: string;
+  createdAt: number;
+}
+
+export interface ClientReview {
+  reviews: ClientQuestionReview[];
+  updatedAt: number;
+}

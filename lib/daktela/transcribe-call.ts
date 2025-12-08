@@ -1,7 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex";
 import { getDaktelaToken } from "@/lib/daktela-token";
-import { transcribeWithWhisper } from "@/lib/transcription";
+import { transcribeWithDeepgram } from "@/lib/transcription";
 
 export interface TranscribeCallResult {
   text: string;
@@ -12,8 +12,12 @@ export interface TranscribeCallResult {
     end: number;
     type: string;
     speaker_id?: string;
-    logprob?: number;
-    characters?: unknown[];
+  }>;
+  utterances: Array<{
+    speaker: number;
+    transcript: string;
+    start: number;
+    end: number;
   }>;
   fromCache: boolean;
 }
@@ -38,6 +42,7 @@ export async function transcribeCall(
         text: existingTranscription.text,
         languageCode: existingTranscription.languageCode,
         words: existingTranscription.words || [],
+        utterances: existingTranscription.utterances || [],
         fromCache: true,
       };
     }
@@ -78,17 +83,19 @@ export async function transcribeCall(
   const call = await convex.query(api.calls.getByCallId, { callId });
   const agentName = call?.agentName ?? undefined;
 
-  const transcription = await transcribeWithWhisper(
-    audioBuffer,
-    `${activityName}.wav`,
-    "pl",
-    agentName
-  );
+  const transcription = await transcribeWithDeepgram(audioBuffer, "pl", agentName);
 
   const transcriptionData = {
     text: transcription.text,
     languageCode: transcription.language_code,
-    words: [] as TranscribeCallResult["words"],
+    words: transcription.words.map((w) => ({
+      text: w.word,
+      start: w.start,
+      end: w.end,
+      type: "word",
+      speaker_id: String(w.speaker),
+    })),
+    utterances: transcription.utterances,
   };
 
   await convex.mutation(api.transcriptions.upsertTranscription, {
@@ -96,6 +103,7 @@ export async function transcribeCall(
     text: transcriptionData.text,
     languageCode: transcriptionData.languageCode,
     words: transcriptionData.words,
+    utterances: transcriptionData.utterances,
   });
 
   return {

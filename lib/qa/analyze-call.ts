@@ -1,5 +1,6 @@
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex";
+import { formatUtterancesAsDialog } from "@/lib/transcription";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
@@ -69,6 +70,10 @@ export async function analyzeCall(
       return { success: false, results: [], error: "Transcription not found" };
     }
 
+    const formattedTranscript = transcription.utterances?.length
+      ? formatUtterancesAsDialog(transcription.utterances)
+      : transcription.text;
+
     const agentName = call?.agentName ?? null;
 
     if (trace) {
@@ -113,14 +118,14 @@ Jeśli jest niepewność (np. niepełne informacje, sprzeczne sygnały), wybierz
 PROCES OCENY:
 1. Przeczytaj pytanie i kontekst oceny.
 2. Znajdź w transkrypcie najważniejsze fragmenty związane z pytaniem (cytuj je dosłownie).
-3. Porównaj te fragmenty z kryteriami dla każdej możliwej odpowiedzi (np. Tak / Częściowo / Nie).
+3. Porównaj te fragmenty z kryteriami dla każdej możliwej odpowiedzi (np. Tak / Nie / Nie dotyczy).
 4. Wybierz odpowiedź, która NAJLEPIEJ pasuje do znalezionych fragmentów.
 5. Uzasadnij decyzję, podając kluczowe cytaty z transkrypcji oraz krótkie, logiczne wyjaśnienie.
 
 Bądź sprawiedliwy, ale wymagający - klient płaci za wysoką jakość obsługi.`;
 
       const userPrompt = `<transcription>
-${transcription.text}
+${formattedTranscript}
 </transcription>
 
 <evaluation_criteria>

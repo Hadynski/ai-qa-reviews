@@ -2,17 +2,16 @@
     {
         "id": "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na",
         "question": "Czy agent przedstawił się, podał nazwę firmy, wyjaśnił cel rozmowy i potwierdził, że klient zostawił kontakt? (wszystko musi być powiedziane na raz)",
-        "context": "Zależy nam na sprawdzeniu czy agent: 1) się przedstawił, 2) podał z jakiej jest firmy, 3) wyjaśnił w jakim celu dzwoni oraz 4) potwierdził, że klient zostawił kontakt do siebie. Odpowiedź 'Tak' jeśli spełnione są wszystkie warunki, 'Częściowo' jeśli spełnione są 2-3 elementy, 'Nie' jeśli agent podał tylko jedną z tych informacji lub nie podał żadnej. UWAGA: Elementy mogą być rozłożone w pierwszych 30-60 sekundach rozmowy, nie muszą być w jednym zdaniu. Jeśli agent zwraca się do klienta po imieniu (np. 'panie Remigiuszu'), oznacza to że wcześniej potwierdzono kontakt.",
+        "context": "Zależy nam na sprawdzeniu czy agent: 1) się przedstawił, 2) podał z jakiej jest firmy, 3) wyjaśnił w jakim celu dzwoni oraz 4) potwierdził, że klient zostawił kontakt do siebie. Odpowiedź 'Tak' jeśli spełnione są wszystkie 4 warunki, 'Nie' w przeciwnym przypadku. UWAGA: Elementy mogą być rozłożone w pierwszych 30-60 sekundach rozmowy, nie muszą być w jednym zdaniu. Jeśli agent zwraca się do klienta po imieniu (np. 'panie Remigiuszu'), oznacza to że wcześniej potwierdzono kontakt.",
         "reference_script": "Dzień dobry, IMIĘ AGENTA, firma Hadyński Inkaso, zostawił Pan przez formularz kontaktowy na naszej stronie prośbę o kontakt w sprawie dłużnika. Zgadza się?",
-        "possibleAnswers": ["Tak", "Częściowo", "Nie"]
+        "possibleAnswers": ["Tak", "Nie"]
     },
     {
         "id": "ds_pytanie_o_imie_i_intencja_tego_po_co_nam",
         "question": "Czy agent zapytał o imię klienta oraz poinformował, dlaczego pyta o imię (np. żeby rozmowa przebiegała sprawniej, była przyjemniejsza, łatwiej było się komunikować itp.)?",
-        "context": "Chcemy sprawdzić, czy agent: 1) zapytał o imię klienta lub je potwierdził (o ile nie było znane wcześniej), 2) uzasadnił pytanie o imię, czyli podał argument po co je pyta – np. żeby nam się lepiej rozmawiało, by rozmowa była bardziej komfortowa, żeby było łatwiej się komunikować, żeby mogła się zwracać po imieniu/nazwisku itp. Takie stwierdzenia jak 'żeby nam się lepiej rozmawiało' są wystarczającym wyjaśnieniem intencji. Jeśli agent znał imię z wcześniejszego kontaktu i nie było potrzeby pytać, odpowiedz 'Tak'. Jeżeli nie podał żadnej intencji – odpowiedz 'Częściowo'. UWAGA: Jeśli agent od początku rozmowy zwraca się do klienta po imieniu (np. 'panie Janie', 'panie Remigiuszu'), oznacza to że imię było znane - odpowiedz 'Tak - potwierdzenie lub zwracanie się'.",
+        "context": "Chcemy sprawdzić, czy agent: 1) zapytał o imię klienta lub je potwierdził (o ile nie było znane wcześniej), 2) uzasadnił pytanie o imię, czyli podał argument po co je pyta – np. żeby nam się lepiej rozmawiało, by rozmowa była bardziej komfortowa, żeby było łatwiej się komunikować, żeby mogła się zwracać po imieniu/nazwisku itp. Takie stwierdzenia jak 'żeby nam się lepiej rozmawiało' są wystarczającym wyjaśnieniem intencji. Jeśli agent znał imię z wcześniejszego kontaktu i nie było potrzeby pytać, odpowiedz 'Tak'. UWAGA: Jeśli agent od początku rozmowy zwraca się do klienta po imieniu (np. 'panie Janie', 'panie Remigiuszu'), oznacza to że imię było znane - odpowiedz 'Tak - potwierdzenie lub zwracanie się'.",
         "possibleAnswers": [
             "Tak - potwierdzenie lub zwracanie się",
-            "Częściowo",
             "Nie"
         ]
     },
@@ -68,11 +67,10 @@
     },
     {
         "id": "ds_pobranie_danych_i_intencja_do_pobrania",
-        "question": "Czy agent pobrał od klienta dane korespondencyjne dłużnika (np. adres, telefon) LUB NIP firmy oraz poinformował, w jakim celu są zbierane te dane?",
-        "context": "Odpowiedz 'Tak', jeśli agent poprosił o dane korespondencyjne dłużnika (adres, telefon) lub NIP firmy oraz wyjaśnił klientowi cel ich zbierania (np. do windykacji, nawiązania kontaktu itp.). Odpowiedz 'Częściowo', jeśli tylko pobrano dane lub NIP lub podjęto próbę ich pobrania, ale nie przekazano klientowi intencji zebrania tych danych. Odpowiedz 'Nie', jeśli nie podjęto próby uzyskania danych korespondencyjnych dłużnika ani NIP-u.",
+        "question": "Czy agent zapytał o dane korespondencyjne dłużnika (adres, telefon, NIP) z podaniem intencji I faktycznie je uzyskał?",
+        "context": "Odpowiedz 'Tak' TYLKO jeśli spełnione są OBA warunki: (1) agent zapytał o dane dłużnika (adres, telefon lub NIP) i wyjaśnił cel zbierania danych, ORAZ (2) klient faktycznie podał te dane. Odpowiedz 'Nie' jeśli: agent nie zapytał o dane, zapytał ale nie podał intencji, lub zapytał z intencją ale klient odmówił/nie chciał podać danych. Odpowiedz 'Nie dotyczy' jeśli agent zapytał o dane z intencją, ale klient nie ma przy sobie danych dłużnika (fizycznie ich nie posiada w momencie rozmowy).",
         "possibleAnswers": [
             "Tak",
-            "Częściowo",
             "Nie",
             "Nie dotyczy - klient nie ma przy sobie danych"
         ]
@@ -80,17 +78,16 @@
     {
         "id": "ds_pytanie_o_dalsza_wspolprace_z_dluznikiem_i_modulowanie",
         "question": "Czy agent zadał wprost pytanie, czy klientowi zależy na utrzymaniu dobrej relacji z dłużnikiem lub dalszej współpracy? (Szukamy wypowiedzi typu: 'Czy chce Pan dalej współpracować z dłużnikiem?' albo 'Czy zależy Panu na utrzymaniu pozytywnych relacji?')",
-        "context": "Odpowiedz 'Tak', jeśli agent dopytuje o znaczenie relacji/zależy na dalszej współpracy, najlepiej w trakcie sprawdzania danych dłużnika w systemie (po pobraniu danych). Odpowiedz 'Częściowo', jeśli pytanie pada, ale bez naturalnego modulowania głosem (np. nie wplecione luźno w rozmowę, mniej naturalnie). 'Nie' jeśli w ogóle nie padło. Przykład naturalnego wtrącenia: 'A tak w czasie, kiedy sprawdzam tego dłużnika... może mi Pan powiedzieć, czy planuje Pan ogólnie dalszą współpracę z tym dłużnikiem?'",
-        "possibleAnswers": ["Tak", "Częściowo", "Nie"]
+        "context": "Odpowiedz 'Tak', jeśli agent dopytuje o znaczenie relacji/zależy na dalszej współpracy. 'Nie' jeśli pytanie w ogóle nie padło. Przykład pytania: 'A tak w czasie, kiedy sprawdzam tego dłużnika... może mi Pan powiedzieć, czy planuje Pan ogólnie dalszą współpracę z tym dłużnikiem?'",
+        "possibleAnswers": ["Tak", "Nie"]
     },
     {
         "id": "ds_zaskoczenie_tym_ze_mamy_dluznika_w_systemie__2_pytania",
         "question": "Czy agent okazał zaskoczenie, zakłopotanie lub zwątpienie, kiedy okazało się, że dłużnik jest już w systemie? Szukamy reakcji emocjonalnej typu: 'jestem w szoku', 'niee, muszę sprawdzić jeszcze raz', wyrażenie zastanowienia, zdziwienia, zakłopotania czy niepewności.",
-        "context": "Odpowiedź 'Tak' – agent okazał wyraźną emocję (zaskoczenie, zakłopotanie, zwątpienie) poprzez wypowiedź lub modulację głosem, np.: 'jestem w szoku, naprawdę mamy tego dłużnika', 'niee, muszę sprawdzić raz jeszcze, nip z końcówką 883, tak?' itp. Odpowiedź 'Częściowo' – pojawiła się reakcja, ale bez wyraźnej modulacji głosem lub była tylko skryptowa/automatyczna. 'Nie' – nie było żadnej reakcji emocjonalnej ani prób okazywania zaskoczenia. DODATKOWE przykłady zaskoczenia do rozpoznania: 'Dziwne...', 'no proszę...', 'o, widzę że...', 'nie spodziewałem się', dopytywanie z wahaniem, użycie zwrotów typu 'z tego co widzę' z nutą niedowierzania, 'kurczę', 'o kurcze'.",
+        "context": "Odpowiedź 'Tak' – agent okazał wyraźną emocję (zaskoczenie, zakłopotanie, zwątpienie) poprzez wypowiedź, np.: 'jestem w szoku, naprawdę mamy tego dłużnika', 'niee, muszę sprawdzić raz jeszcze, nip z końcówką 883, tak?' itp. 'Nie' – nie było żadnej reakcji emocjonalnej ani prób okazywania zaskoczenia. DODATKOWE przykłady zaskoczenia do rozpoznania: 'Dziwne...', 'no proszę...', 'o, widzę że...', 'nie spodziewałem się', dopytywanie z wahaniem, użycie zwrotów typu 'z tego co widzę' z nutą niedowierzania, 'kurczę', 'o kurcze'.",
         "reference_script": "Wie Pan co... jestem w szoku, ale mamy tego dłużnika w systemie. Pan trafił do nas z jakiegoś polecenia? Wiedział Pan o tym, że już go windykowaliśmy?",
         "possibleAnswers": [
             "Tak",
-            "Częściowo",
             "Nie",
             "Nie dotyczy - klient nie ma przy sobie danych/klient z polecenia,aktualny klient"
         ]
@@ -104,10 +101,10 @@
     },
     {
         "id": "ds_przedstawienie_dalszych_krokow_analizy_i_modulowanie",
-        "question": "Czy agent jasno przedstawił klientowi dalsze kroki analizy oraz modulował głosem, podkreślając indywidualne podejście?",
-        "context": "Oceń łącznie dwie rzeczy: (1) czy agent jasno przedstawił dalsze kroki analizy (np. rezerwacja czasu działu prawnego, wewnętrzna analiza sytuacji dłużnika, kolejny kontakt) oraz (2) czy w tym fragmencie wypowiedzi modulował głosem (pauza, zwolnienie tempa, akcentowanie ważnych słów, brzmiał jakby realnie zastanawiał się nad rozwiązaniem/godziną). 'Tak' - jeśli spełnione są oba warunki (1 i 2). 'Częściowo' - jeśli spełniony jest tylko jeden z warunków (tylko jasne kroki albo tylko modulacja głosu). 'Nie' - jeśli agent ani nie przedstawił wyraźnie dalszych kroków, ani nie modulował głosem. UWAGA: Ocena modulacji głosu jest niemożliwa na podstawie samej transkrypcji tekstowej. Jeśli agent jasno przedstawił dalsze kroki analizy (rezerwacja działu prawnego, konkretna godzina, analiza z windykatorami), ale nie można ocenić modulacji - odpowiedz 'Częściowo'. Odpowiedz 'Nie' tylko jeśli kroki były niejasne lub niepełne.",
+        "question": "Czy agent jasno przedstawił klientowi dalsze kroki analizy, podkreślając indywidualne podejście?",
+        "context": "Oceń, czy agent jasno przedstawił dalsze kroki analizy (np. rezerwacja czasu działu prawnego, wewnętrzna analiza sytuacji dłużnika, kolejny kontakt). 'Tak' - jeśli agent jasno przedstawił dalsze kroki analizy (rezerwacja działu prawnego, konkretna godzina, analiza z windykatorami). 'Nie' - jeśli kroki były niejasne, niepełne lub nie zostały przedstawione.",
         "reference_script": "Ja tutaj widzę, że na godzinę [GODZINA] mogę zarezerwować dział prawny i wraz z nim przeanalizujemy sytuację dłużnika, żeby dobrać dla Pana najskuteczniejsze rozwiązanie, czy możemy umówić się na telefon o godzinie [PODAJ GODZINĘ]?",
-        "possibleAnswers": ["Tak", "Częściowo", "Nie"]
+        "possibleAnswers": ["Tak", "Nie"]
     },
     {
         "id": "ds_informacja_o_bezplatnej",
@@ -119,14 +116,14 @@
     {
         "id": "ds_zwracanie_sie_do_klienta_po",
         "question": "Czy agent zwracał się do klienta po imieniu, np. 'Janie', 'Panie Janie', itp.?",
-        "context": "Jako zwracanie się po imieniu traktuj również formy pośrednie typu 'Panie Janie', 'Pani Anno' itd. Jeśli agent użył imienia klienta tylko raz w trakcie rozmowy, odpowiedz 'Częściowo'.",
-        "possibleAnswers": ["Tak", "Częściowo", "Nie"]
+        "context": "Jako zwracanie się po imieniu traktuj również formy pośrednie typu 'Panie Janie', 'Pani Anno' itd. 'Tak' - jeśli agent użył imienia klienta w trakcie rozmowy (choćby raz). 'Nie' - jeśli agent w ogóle nie użył imienia klienta.",
+        "possibleAnswers": ["Tak", "Nie"]
     },
     {
         "id": "ds_pauzy_w_rozmowie",
         "question": "Czy rozmowa brzmi naturalnie, tzn. czy agent robi krótkie pauzy/zastanowienia zamiast czytać skrypt jednym ciągiem?",
-        "context": "Oceń, czy brzmienie rozmowy przypomina naturalną rozmowę, a nie odczytywanie skryptu. 'Tak' - w rozmowie wyraźnie słychać krótkie pauzy, chwile zastanowienia, zmiany tempa mówienia (modulacja), agent nie czyta zdań 'z kartki' jednym tchem. 'Częściowo' - pojedyncze pauzy lub chwilowe zastanowienie się występują, ale przez większość czasu agent brzmi jakby czytał skrypt. 'Nie' - wypowiedzi są mówione szybko, jednym ciągiem, bez naturalnych pauz ani zawahań, jak wyrecytowany skrypt. UWAGA: Ocena pauz i tempa mówienia jest trudna na podstawie samej transkrypcji. Jeśli rozmowa zawiera naturalne zwroty konwersacyjne (np. 'okej', 'dobra', 'no właśnie', pytania pogłębiające, reakcje na wypowiedzi klienta), ale nie można jednoznacznie ocenić tempa - odpowiedz 'Częściowo'. Odpowiedz 'Nie' tylko jeśli widoczne jest monotonne recytowanie skryptu bez żadnej interakcji.",
-        "possibleAnswers": ["Tak", "Częściowo", "Nie"]
+        "context": "Oceń, czy brzmienie rozmowy przypomina naturalną rozmowę, a nie odczytywanie skryptu. 'Tak' - rozmowa zawiera naturalne zwroty konwersacyjne (np. 'okej', 'dobra', 'no właśnie', pytania pogłębiające, reakcje na wypowiedzi klienta), agent reaguje na to co mówi klient. 'Nie' - widoczne jest monotonne recytowanie skryptu bez żadnej interakcji, agent nie reaguje na wypowiedzi klienta.",
+        "possibleAnswers": ["Tak", "Nie"]
     },
     {
         "id": "ds_brak_informacji_o_warunkach_wspolpracy_cenasankcjenota",
@@ -138,16 +135,15 @@
     {
         "id": "ds_umowienie_sie_na_rozmowe_z_analiza_dluznika",
         "question": "Czy agent umówił się z klientem na konkretną godzinę rozmowy z analizą dłużnika oraz poinformował, że w analizę będzie zaangażowany dział prawny lub windykatorzy?",
-        "context": "Oceń łącznie dwa warunki: (1) czy została ustalona z klientem konkretna godzina rozmowy (np. 15:30, a nie 'po południu', 'koło 16') ORAZ (2) czy agent wskazał, że w analizę sprawy będzie zaangażowany dział prawny LUB windykatorzy. WAŻNE: Warunek (2) uznaj za spełniony, jeśli agent WYRAŹNIE WSPOMNIAŁ o dziale prawnym **ALBO** windykatorach – nie musi wspomnieć o obu, wystarczy jedno z dwóch. Nie musi też precyzować formy ich udziału (np. wystarczy sformułowanie typu: 'zarezerwuję dział prawny', 'przeanalizujemy z działem prawnym', 'windykatorzy przeanalizują', 'chłopaki z windykacji sprawdzą'). 'Tak' – oba warunki są spełnione: była konkretna godzina I padła nawet ogólna informacja o dziale prawnym lub windykatorach. 'Częściowo' – tylko jeden z warunków (tylko konkretna godzina LUB tylko informacja o dziale prawnym/windykatorach). 'Nie' – brak obu elementów.",
-        "possibleAnswers": ["Tak", "Częściowo", "Nie"]
+        "context": "Oceń łącznie dwa warunki: (1) czy została ustalona z klientem konkretna godzina rozmowy (np. 15:30, a nie 'po południu', 'koło 16') ORAZ (2) czy agent wskazał, że w analizę sprawy będzie zaangażowany dział prawny LUB windykatorzy. WAŻNE: Warunek (2) uznaj za spełniony, jeśli agent WYRAŹNIE WSPOMNIAŁ o dziale prawnym **ALBO** windykatorach – nie musi wspomnieć o obu, wystarczy jedno z dwóch. Nie musi też precyzować formy ich udziału (np. wystarczy sformułowanie typu: 'zarezerwuję dział prawny', 'przeanalizujemy z działem prawnym', 'windykatorzy przeanalizują', 'chłopaki z windykacji sprawdzą'). 'Tak' – oba warunki są spełnione: była konkretna godzina I padła nawet ogólna informacja o dziale prawnym lub windykatorach. 'Nie' – brak jednego lub obu elementów.",
+        "possibleAnswers": ["Tak", "Nie"]
     },
     {
         "id": "ds_zbijanie_obiekcji__minimum_dw",
         "question": "Czy agent zbijał obiekcje klienta na temat usługi/rozwiązania minimum dwukrotnie?",
-        "context": "WAŻNE: Najpierw sprawdź, czy w rozmowie w ogóle pojawiły się obiekcje klienta dotyczące usługi/rozwiązania. Jeśli klient NIE zgłaszał żadnych obiekcji przez całą rozmowę, odpowiedz 'Nie dotyczy - brak obiekcji'. Jeśli były obiekcje, wtedy oceniaj: 'Tak' - obiekcja została zbita (agent skutecznie odpowiedział na wątpliwości minimum dwukrotnie). 'Częściowo' - agent podjął minimum 2 próby zbicia obiekcji, ale obiekcja pozostała niezbita. 'Nie' - agent nie podjął próby zbicia obiekcji lub podjął mniej niż 2 próby, mimo że klient zgłaszał obiekcje. UWAGA: Wątpliwości klienta o sytuacji dłużnika (np. 'on nie ma firmy', 'pracuje na czarno', 'jest w upadłości') NIE SĄ obiekcjami wobec usługi - to tylko opis sytuacji. Przykłady PRAWDZIWYCH OBIEKCJI które agent powinien zbijać: klient nie chce wysłuchać narzędzi z jakich korzysta Hadyński, klient mówi że porozmawia z osobą XYZ, klient potrzebuje się zastanowić, klient chce dać dłużnikowi czas/ostatnią szansę, klient porównuje oferty, klient chce tylko sprzedać dług, klientowi nie odpowiada cena / gdzie indziej jest taniej, klient mówi że dłużnik nie będzie chciał zapłacić prowizji, klient nie może odesłać dokumentów w wyznaczonym terminie, klient przeczytał negatywne opinie o firmie.",
+        "context": "WAŻNE: Najpierw sprawdź, czy w rozmowie w ogóle pojawiły się obiekcje klienta dotyczące usługi/rozwiązania. Jeśli klient NIE zgłaszał żadnych obiekcji przez całą rozmowę, odpowiedz 'Nie dotyczy - brak obiekcji'. Jeśli były obiekcje, wtedy oceniaj: 'Tak' - agent podjął minimum 2 próby zbicia obiekcji (niezależnie od skuteczności). 'Nie' - agent nie podjął próby zbicia obiekcji lub podjął mniej niż 2 próby, mimo że klient zgłaszał obiekcje. UWAGA: Wątpliwości klienta o sytuacji dłużnika (np. 'on nie ma firmy', 'pracuje na czarno', 'jest w upadłości') NIE SĄ obiekcjami wobec usługi - to tylko opis sytuacji. Przykłady PRAWDZIWYCH OBIEKCJI które agent powinien zbijać: klient nie chce wysłuchać narzędzi z jakich korzysta Hadyński, klient mówi że porozmawia z osobą XYZ, klient potrzebuje się zastanowić, klient chce dać dłużnikowi czas/ostatnią szansę, klient porównuje oferty, klient chce tylko sprzedać dług, klientowi nie odpowiada cena / gdzie indziej jest taniej, klient mówi że dłużnik nie będzie chciał zapłacić prowizji, klient nie może odesłać dokumentów w wyznaczonym terminie, klient przeczytał negatywne opinie o firmie.",
         "possibleAnswers": [
             "Tak",
-            "Częściowo",
             "Nie",
             "Nie dotyczy - brak obiekcji"
         ]
@@ -155,7 +151,7 @@
     {
         "id": "ds_budowanie_relacji",
         "question": "Czy agent budował relację z klientem, zadając dodatkowe pytania i okazując zainteresowanie sytuacją klienta lub jego firmy (zamiast trzymać się wyłącznie skryptu)?",
-        "context": "Oceń, czy agent wychodzi poza sam skrypt. 'Tak' – agent zadaje follow‑upowe pytania, nawiązuje do wypowiedzi klienta, okazuje zainteresowanie jego sytuacją, firmą lub choć jedną konkretną rzeczą z rozmowy; rozmowa brzmi jak prawdziwa interakcja, a nie odczyt. 'Częściowo' – agent sporadycznie reaguje na słowa klienta (pojedyncze dopytanie lub komentarz), ale większość rozmowy to nadal skrypt. 'Nie' – agent praktycznie nie reaguje na wypowiedzi klienta i odtwarza skrypt linijka po linijce. PRZYPOMNIENIE: Pytanie o dalszą współpracę z dłużnikiem lub o to skąd klient się dowiedział o firmie - NIE JEST budowaniem relacji i NIE może być podstawą do odpowiedzi 'Tak'. Te pytania traktujemy jako standardową część procesu. Odpowiedź 'Tak' tylko wtedy, gdy agent wchodzi w szerszą, bardziej ludzką rozmowę z klientem (empatia, ciekawość jego sytuacji), a nie zadaje wyłącznie pytania procesowe lub sprzedażowe.",
-        "possibleAnswers": ["Tak", "Częściowo", "Nie"]
+        "context": "Budowanie relacji oznacza dzielenie sie przez agenta wlasnymi doswiadczeniami lub odczuciami. 'Tak' - agent wspomina o własnych przeżyciach, sytuacjach, opiniach lub emocjach w nawiązaniu do tego co mowi klient. Przykłady: 'Ja sie Panu nie dziwie i na Pana miejscu tez bylbym wkurzony', 'Ja też miałem taką sytuację...', 'Oo robi Pan budowlankę, a ja właśnie potrzebuję u siebie cos zbudować', 'A gdzie Pan jedzie na wakacje? O ja akurat jade xyz'. 'Nie' - agent nie dzieli sie zadnymi wlasnymi doswiadczeniami ani odczuciami. WAZNE: Dopytywanie o szczegoly (np. kwoty, terminy) lub pytania procesowe/sprzedazowe NIE SA budowaniem relacji. Liczy sie tylko osobiste odniesienie agenta.",
+        "possibleAnswers": ["Tak", "Nie"]
     }
 ]

@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2, PhoneIncoming, PhoneOutgoing, User, Clock, AlertCircle } from "lucide-react";
 import { QaComparison } from "@/components/qa-comparison";
-import { HumanQaReview } from "@/types/qa";
+import { HumanQaReview, ClientReview } from "@/types/qa";
 import { toast } from "sonner";
 
 type TranscriptionWord = {
@@ -26,9 +26,17 @@ type TranscriptionWord = {
   speaker_id: string | null;
 };
 
+type Utterance = {
+  speaker: number;
+  transcript: string;
+  start: number;
+  end: number;
+};
+
 type Transcription = {
   text: string;
   words: TranscriptionWord[];
+  utterances?: Utterance[];
   language_code: string;
 };
 
@@ -67,6 +75,7 @@ type Recording = {
   qaAnalysisStatus?: 'idle' | 'loading' | 'completed' | 'error';
   humanQaReview?: HumanQaReview;
   humanQaReviewStatus?: 'idle' | 'loading' | 'completed' | 'error';
+  clientReview?: ClientReview;
 };
 
 export default function Home() {
@@ -91,8 +100,9 @@ export default function Home() {
   const callsData = useQuery(api.calls.list, { page: currentPage, limit: 20 });
   const transcriptionsFromDB = useQuery(api.transcriptions.list);
 
-  // Convex mutation for saving human QA review
+  // Convex mutations
   const saveHumanQaReview = useMutation(api.transcriptions.saveHumanQaReview);
+  const saveClientReviewMutation = useMutation(api.transcriptions.saveClientReview);
 
   useEffect(() => {
     const authenticateDaktela = async () => {
@@ -129,6 +139,7 @@ export default function Home() {
                 text: transcription.text,
                 language_code: transcription.languageCode,
                 words: transcription.words || [],
+                utterances: transcription.utterances || [],
               }
             : undefined,
           transcriptionStatus: transcription ? ('completed' as const) : ('idle' as const),
@@ -136,6 +147,7 @@ export default function Home() {
           qaAnalysisStatus: transcription?.qaAnalysis ? ('completed' as const) : ('idle' as const),
           humanQaReview: transcription?.humanQaReview,
           humanQaReviewStatus: transcription?.humanQaReview ? ('completed' as const) : ('idle' as const),
+          clientReview: transcription?.clientReview,
         };
       });
       setRecordings(recordingsWithTranscriptions as Recording[]);
@@ -156,6 +168,7 @@ export default function Home() {
                   text: transcription.text,
                   language_code: transcription.languageCode,
                   words: transcription.words || [],
+                  utterances: transcription.utterances || [],
                 }
               : undefined,
             transcriptionStatus: transcription ? ('completed' as const) : ('idle' as const),
@@ -163,6 +176,7 @@ export default function Home() {
             qaAnalysisStatus: transcription?.qaAnalysis ? ('completed' as const) : ('idle' as const),
             humanQaReview: transcription?.humanQaReview,
             humanQaReviewStatus: transcription?.humanQaReview ? ('completed' as const) : ('idle' as const),
+            clientReview: transcription?.clientReview,
           };
         });
         setRecordings(recordingsWithTranscriptions as Recording[]);
@@ -184,6 +198,7 @@ export default function Home() {
                   text: transcription.text,
                   language_code: transcription.languageCode,
                   words: transcription.words || [],
+                  utterances: transcription.utterances || [],
                 }
               : undefined,
             transcriptionStatus: transcription ? ('completed' as const) : ('idle' as const),
@@ -191,6 +206,7 @@ export default function Home() {
             qaAnalysisStatus: transcription?.qaAnalysis ? ('completed' as const) : ('idle' as const),
             humanQaReview: transcription?.humanQaReview,
             humanQaReviewStatus: transcription?.humanQaReview ? ('completed' as const) : ('idle' as const),
+            clientReview: transcription?.clientReview,
           };
         });
 
@@ -239,6 +255,7 @@ export default function Home() {
                     text: transcription.text,
                     language_code: transcription.languageCode,
                     words: transcription.words || [],
+                    utterances: transcription.utterances || [],
                   }
                 : undefined,
               transcriptionStatus: transcription ? ('completed' as const) : ('idle' as const),
@@ -246,6 +263,7 @@ export default function Home() {
               qaAnalysisStatus: transcription?.qaAnalysis ? ('completed' as const) : ('idle' as const),
               humanQaReview: transcription?.humanQaReview,
               humanQaReviewStatus: transcription?.humanQaReview ? ('completed' as const) : ('idle' as const),
+              clientReview: transcription?.clientReview,
             };
           });
           setRecordings(recordingsWithTranscriptions as Recording[]);
@@ -472,6 +490,42 @@ export default function Home() {
     }
   };
 
+  const handleSaveClientReview = async (questionId: string, comment: string) => {
+    if (!selectedRecording?.callId) return;
+
+    await saveClientReviewMutation({
+      callId: selectedRecording.callId,
+      questionId,
+      comment,
+    });
+
+    const now = Date.now();
+    const updateClientReview = (prev: ClientReview | undefined): ClientReview => {
+      const existingReviews = prev?.reviews ?? [];
+      const existingIndex = existingReviews.findIndex(r => r.questionId === questionId);
+
+      let updatedReviews;
+      if (existingIndex >= 0) {
+        updatedReviews = existingReviews.map((r, i) =>
+          i === existingIndex ? { questionId, comment, createdAt: now } : r
+        );
+      } else {
+        updatedReviews = [...existingReviews, { questionId, comment, createdAt: now }];
+      }
+
+      return { reviews: updatedReviews, updatedAt: now };
+    };
+
+    setRecordings(prev => prev.map(r =>
+      r.callId === selectedRecording.callId
+        ? { ...r, clientReview: updateClientReview(r.clientReview) }
+        : r
+    ));
+
+    setSelectedRecording(prev =>
+      prev ? { ...prev, clientReview: updateClientReview(prev.clientReview) } : null
+    );
+  };
 
   return (
     <div className="min-h-screen p-8">
@@ -709,6 +763,11 @@ export default function Home() {
               <QaComparison
                 aiAnalysis={selectedRecording.qaAnalysis}
                 humanReview={selectedRecording.humanQaReview}
+                activityName={selectedRecording.activityName ?? undefined}
+                transcriptionText={selectedRecording.transcription?.text}
+                utterances={selectedRecording.transcription?.utterances}
+                clientReview={selectedRecording.clientReview}
+                onSaveClientReview={handleSaveClientReview}
               />
             </div>
           )}

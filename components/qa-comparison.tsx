@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { QaAnalysis, HumanQaReview, QaComparisonItem } from '@/types/qa';
+import { useState } from 'react';
+import { QaAnalysis, HumanQaReview, QaComparisonItem, ClientReview } from '@/types/qa';
 import qaQuestions from '@/config/qa-questions.json';
 import qaMapping from '@/config/qa-mapping.json';
-import { Bot, User, Check, X, AlertTriangle, Minus, HelpCircle, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { Bot, User, Check, X, Minus, HelpCircle, ChevronDown, ChevronUp, Eye, MessageSquare, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -15,11 +15,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+interface Utterance {
+  speaker: number;
+  transcript: string;
+  start: number;
+  end: number;
+}
+
 interface QaComparisonProps {
   aiAnalysis?: QaAnalysis;
   humanReview?: HumanQaReview;
   activityName?: string;
   transcriptionText?: string;
+  utterances?: Utterance[];
+  clientReview?: ClientReview;
+  onSaveClientReview?: (questionId: string, comment: string) => Promise<void>;
 }
 
 export function calculateComparison(
@@ -29,7 +39,6 @@ export function calculateComparison(
   const items: QaComparisonItem[] = [];
   let agreementCount = 0;
   let disagreementCount = 0;
-  let partialCount = 0;
   let questionsCompared = 0;
 
   qaQuestions.forEach((question) => {
@@ -51,11 +60,10 @@ export function calculateComparison(
         agreementCount++;
       } else if (
         (aiAnswer.includes('tak') && humanAnswer.includes('tak')) ||
-        (aiAnswer.includes('nie') && humanAnswer.includes('nie')) ||
-        (aiAnswer.includes('częściowo') && humanAnswer.includes('częściowo'))
+        (aiAnswer.includes('nie') && humanAnswer.includes('nie'))
       ) {
-        agreement = 'partial';
-        partialCount++;
+        agreement = 'agree';
+        agreementCount++;
       } else {
         agreement = 'disagree';
         disagreementCount++;
@@ -77,7 +85,7 @@ export function calculateComparison(
 
   const agreementPercentage =
     questionsCompared > 0
-      ? Math.round(((agreementCount + partialCount) / questionsCompared) * 100)
+      ? Math.round((agreementCount / questionsCompared) * 100)
       : 0;
 
   return {
@@ -86,7 +94,6 @@ export function calculateComparison(
       totalQuestions: qaQuestions.length,
       questionsCompared,
       agreementCount,
-      partialCount,
       disagreementCount,
       agreementPercentage,
     },
@@ -102,14 +109,6 @@ function getAgreementStyles(agreement: QaComparisonItem['agreement']) {
         badgeColor: 'bg-green-100 text-green-700 border-green-200',
         borderColor: 'border-green-200',
         bgColor: 'bg-green-50/30',
-      };
-    case 'partial':
-      return {
-        label: 'Partial',
-        icon: AlertTriangle,
-        badgeColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-        borderColor: 'border-yellow-200',
-        bgColor: 'bg-yellow-50/30',
       };
     case 'disagree':
       return {
@@ -146,18 +145,61 @@ function getAgreementStyles(agreement: QaComparisonItem['agreement']) {
   }
 }
 
-export function QaComparison({ aiAnalysis, humanReview, activityName, transcriptionText }: QaComparisonProps) {
+function mergeConsecutiveUtterances(utterances: Utterance[]): Utterance[] {
+  if (utterances.length === 0) return [];
+
+  const merged: Utterance[] = [];
+  let current = { ...utterances[0] };
+
+  for (let i = 1; i < utterances.length; i++) {
+    if (utterances[i].speaker === current.speaker) {
+      current.transcript += ' ' + utterances[i].transcript;
+      current.end = utterances[i].end;
+    } else {
+      merged.push(current);
+      current = { ...utterances[i] };
+    }
+  }
+  merged.push(current);
+
+  return merged;
+}
+
+export function QaComparison({ aiAnalysis, humanReview, activityName, transcriptionText, utterances, clientReview, onSaveClientReview }: QaComparisonProps) {
   const { items, metrics } = calculateComparison(aiAnalysis, humanReview);
   const [hideMatches, setHideMatches] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [transcriptionModalOpen, setTranscriptionModalOpen] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [reviewDrafts, setReviewDrafts] = useState<Record<string, string>>({});
+  const [savingReviews, setSavingReviews] = useState<Set<string>>(new Set());
 
-  const handlePlaybackRateChange = (rate: number) => {
-    setPlaybackRate(rate);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = rate;
+  const getExistingReview = (questionId: string) => {
+    return clientReview?.reviews.find((r) => r.questionId === questionId);
+  };
+
+  const handleReviewChange = (questionId: string, value: string) => {
+    setReviewDrafts((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const handleSaveReview = async (questionId: string) => {
+    if (!onSaveClientReview) return;
+    const comment = reviewDrafts[questionId];
+    if (comment === undefined) return;
+
+    setSavingReviews((prev) => new Set(prev).add(questionId));
+    try {
+      await onSaveClientReview(questionId, comment);
+      setReviewDrafts((prev) => {
+        const next = { ...prev };
+        delete next[questionId];
+        return next;
+      });
+    } finally {
+      setSavingReviews((prev) => {
+        const next = new Set(prev);
+        next.delete(questionId);
+        return next;
+      });
     }
   };
 
@@ -211,17 +253,12 @@ export function QaComparison({ aiAnalysis, humanReview, activityName, transcript
                   className="bg-green-500 h-full"
                 />
                 <div
-                  style={{ width: `${(metrics.partialCount / metrics.questionsCompared) * 100}%` }}
-                  className="bg-yellow-400 h-full"
-                />
-                <div
                   style={{ width: `${(metrics.disagreementCount / metrics.questionsCompared) * 100}%` }}
                   className="bg-red-500 h-full"
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-400">
                 <span>Total: {metrics.questionsCompared} compared</span>
-                {metrics.partialCount > 0 && <span>{metrics.partialCount} Partial</span>}
               </div>
             </div>
 
@@ -258,36 +295,17 @@ export function QaComparison({ aiAnalysis, humanReview, activityName, transcript
               <div className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
                 Call Recording
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  {[1, 1.5, 2].map((rate) => (
-                    <button
-                      key={rate}
-                      onClick={() => handlePlaybackRateChange(rate)}
-                      className={cn(
-                        "px-2 py-0.5 text-xs rounded",
-                        playbackRate === rate
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      )}
-                    >
-                      {rate}x
-                    </button>
-                  ))}
-                </div>
-                {transcriptionText && (
-                  <button
-                    onClick={() => setTranscriptionModalOpen(true)}
-                    className="text-gray-500 hover:text-gray-700"
-                    title="View transcription"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+              {(transcriptionText || (utterances && utterances.length > 0)) && (
+                <button
+                  onClick={() => setTranscriptionModalOpen(true)}
+                  className="text-gray-500 hover:text-gray-700"
+                  title="View transcription"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <audio
-              ref={audioRef}
               controls
               className="w-full h-10"
               preload="metadata"
@@ -388,6 +406,61 @@ export function QaComparison({ aiAnalysis, humanReview, activityName, transcript
                   </div>
                 </div>
                 )}
+
+                {/* Client Review Section */}
+                {onSaveClientReview && item.agreement === 'disagree' && (
+                  <div className="mt-4 bg-white/60 rounded-lg p-4 border border-gray-200/60">
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+                      <MessageSquare className="w-4 h-4 text-orange-600" />
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Client Review</span>
+                    </div>
+                    {(() => {
+                      const existingReview = getExistingReview(item.questionId);
+                      const draft = reviewDrafts[item.questionId];
+                      const currentValue = draft !== undefined ? draft : (existingReview?.comment ?? '');
+                      const hasChanges = draft !== undefined && draft !== (existingReview?.comment ?? '');
+                      const isSaving = savingReviews.has(item.questionId);
+
+                      return (
+                        <div className="space-y-2">
+                          <textarea
+                            value={currentValue}
+                            onChange={(e) => handleReviewChange(item.questionId, e.target.value)}
+                            placeholder="Add your feedback about this question..."
+                            className="w-full text-sm p-2 border border-gray-200 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                            rows={2}
+                            disabled={isSaving}
+                          />
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs text-gray-400">
+                              {existingReview && (
+                                <span>
+                                  Last updated: {new Date(existingReview.createdAt).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            {hasChanges && (
+                              <button
+                                onClick={() => handleSaveReview(item.questionId)}
+                                disabled={isSaving}
+                                className="px-3 py-1 text-xs font-medium bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center gap-1"
+                              >
+                                {isSaving ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    Saving...
+                                  </>
+                                ) : (
+                                  'Save'
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -400,8 +473,24 @@ export function QaComparison({ aiAnalysis, humanReview, activityName, transcript
           <DialogHeader>
             <DialogTitle>Transcription</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] whitespace-pre-wrap text-sm">
-            {transcriptionText}
+          <div className="overflow-y-auto max-h-[60vh] text-sm">
+            {utterances && utterances.length > 0 ? (
+              <div className="space-y-4">
+                {mergeConsecutiveUtterances(utterances).map((u, i) => (
+                  <div key={i} className="flex gap-3">
+                    <span className={cn(
+                      "shrink-0 px-2 py-0.5 rounded text-xs font-medium h-fit",
+                      u.speaker === 0 ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                    )}>
+                      Speaker {u.speaker}
+                    </span>
+                    <p className="text-gray-800 leading-relaxed">{u.transcript}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap">{transcriptionText}</div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -42,6 +42,33 @@ import { toast } from "sonner";
 
 type ProcessingStatus = "idle" | "processing" | "completed" | "error";
 
+type Utterance = {
+  speaker: number;
+  transcript: string;
+  start: number;
+  end: number;
+};
+
+function mergeConsecutiveUtterances(utterances: Utterance[]): Utterance[] {
+  if (utterances.length === 0) return [];
+
+  const merged: Utterance[] = [];
+  let current = { ...utterances[0] };
+
+  for (let i = 1; i < utterances.length; i++) {
+    if (utterances[i].speaker === current.speaker) {
+      current.transcript += ' ' + utterances[i].transcript;
+      current.end = utterances[i].end;
+    } else {
+      merged.push(current);
+      current = { ...utterances[i] };
+    }
+  }
+  merged.push(current);
+
+  return merged;
+}
+
 interface ReviewWithStatus extends QaReviewItem {
   processingStatus: ProcessingStatus;
   processingError?: string;
@@ -66,7 +93,10 @@ export default function QaComparisonPage() {
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [sortByMatch, setSortByMatch] = useState<"asc" | "desc" | null>("asc");
   const [transcriptionModalOpen, setTranscriptionModalOpen] = useState(false);
-  const [transcriptionToView, setTranscriptionToView] = useState<string | null>(null);
+  const [transcriptionToView, setTranscriptionToView] = useState<{
+    text: string;
+    utterances?: Array<{ speaker: number; transcript: string; start: number; end: number }>;
+  } | null>(null);
   const [reprocessDialog, setReprocessDialog] = useState<{
     open: boolean;
     type: "review" | "transcribe";
@@ -84,6 +114,7 @@ export default function QaComparisonPage() {
   // Convex mutations
   const upsertReviews = useMutation(api.qaReviews.upsertReviews);
   const updateReviewStatus = useMutation(api.qaReviews.updateStatus);
+  const saveClientReviewMutation = useMutation(api.transcriptions.saveClientReview);
 
   // Load reviews from DB on mount
   useEffect(() => {
@@ -388,7 +419,10 @@ export default function QaComparisonPage() {
   const openTranscriptionModal = (review: ReviewWithStatus) => {
     const transcription = getTranscriptionForReview(review);
     if (transcription?.text) {
-      setTranscriptionToView(transcription.text);
+      setTranscriptionToView({
+        text: transcription.text,
+        utterances: transcription.utterances,
+      });
       setTranscriptionModalOpen(true);
     }
   };
@@ -545,6 +579,16 @@ export default function QaComparisonPage() {
   const pendingCount = reviews.filter(
     (r) => r.processingStatus === "idle" && r.activityName
   ).length;
+
+  const handleSaveClientReview = async (questionId: string, comment: string) => {
+    if (!selectedReview?.callId) return;
+
+    await saveClientReviewMutation({
+      callId: selectedReview.callId,
+      questionId,
+      comment,
+    });
+  };
 
   const isInitialLoading = qaReviewsFromDB === undefined || transcriptionsFromDB === undefined;
 
@@ -881,6 +925,9 @@ export default function QaComparisonPage() {
                     }}
                     activityName={selectedReview.activityName || undefined}
                     transcriptionText={transcription?.text}
+                    utterances={transcription?.utterances}
+                    clientReview={transcription?.clientReview}
+                    onSaveClientReview={handleSaveClientReview}
                   />
                 );
               })()}
@@ -895,8 +942,23 @@ export default function QaComparisonPage() {
           <DialogHeader>
             <DialogTitle>Transcription</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh] whitespace-pre-wrap text-sm">
-            {transcriptionToView}
+          <div className="overflow-y-auto max-h-[60vh] text-sm">
+            {transcriptionToView?.utterances && transcriptionToView.utterances.length > 0 ? (
+              <div className="space-y-4">
+                {mergeConsecutiveUtterances(transcriptionToView.utterances).map((u, i) => (
+                  <div key={i} className="flex gap-3">
+                    <span className={`shrink-0 px-2 py-0.5 rounded text-xs font-medium h-fit ${
+                      u.speaker === 0 ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                    }`}>
+                      Speaker {u.speaker}
+                    </span>
+                    <p className="text-gray-800 leading-relaxed">{u.transcript}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap">{transcriptionToView?.text}</div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
