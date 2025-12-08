@@ -85,6 +85,8 @@ export async function transcribeCall(
 
   const transcription = await transcribeWithDeepgram(audioBuffer, "pl", agentName);
 
+  console.log(`[TranscribeCall] Deepgram returned, preparing data for Convex`);
+
   const transcriptionData = {
     text: transcription.text,
     languageCode: transcription.language_code,
@@ -98,6 +100,8 @@ export async function transcribeCall(
     utterances: transcription.utterances,
   };
 
+  console.log(`[TranscribeCall] Saving to Convex: ${transcriptionData.words.length} words, ${transcriptionData.utterances.length} utterances`);
+
   await convex.mutation(api.transcriptions.upsertTranscription, {
     callId,
     text: transcriptionData.text,
@@ -105,6 +109,8 @@ export async function transcribeCall(
     words: transcriptionData.words,
     utterances: transcriptionData.utterances,
   });
+
+  console.log(`[TranscribeCall] Saved to Convex successfully`);
 
   return {
     ...transcriptionData,
