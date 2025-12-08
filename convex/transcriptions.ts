@@ -43,6 +43,16 @@ export const upsertTranscription = mutation({
         })
       )
     ),
+    utterances: v.optional(
+      v.array(
+        v.object({
+          speaker: v.number(),
+          transcript: v.string(),
+          start: v.number(),
+          end: v.number(),
+        })
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -55,6 +65,7 @@ export const upsertTranscription = mutation({
         text: args.text,
         languageCode: args.languageCode,
         words: args.words,
+        utterances: args.utterances,
       });
       return existing._id;
     }
@@ -159,6 +170,53 @@ export const deleteTranscription = mutation({
     if (existing) {
       await ctx.db.delete(existing._id);
     }
+  },
+});
+
+export const saveClientReview = mutation({
+  args: {
+    callId: v.string(),
+    questionId: v.string(),
+    comment: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const transcription = await ctx.db
+      .query("transcriptions")
+      .withIndex("by_call_id", (q) => q.eq("callId", args.callId))
+      .first();
+
+    if (!transcription) {
+      throw new Error(`Transcription not found for callId: ${args.callId}`);
+    }
+
+    const now = Date.now();
+    const existingReviews = transcription.clientReview?.reviews ?? [];
+    const existingIndex = existingReviews.findIndex(
+      (r) => r.questionId === args.questionId
+    );
+
+    let updatedReviews;
+    if (existingIndex >= 0) {
+      updatedReviews = existingReviews.map((r, i) =>
+        i === existingIndex
+          ? { questionId: args.questionId, comment: args.comment, createdAt: now }
+          : r
+      );
+    } else {
+      updatedReviews = [
+        ...existingReviews,
+        { questionId: args.questionId, comment: args.comment, createdAt: now },
+      ];
+    }
+
+    await ctx.db.patch(transcription._id, {
+      clientReview: {
+        reviews: updatedReviews,
+        updatedAt: now,
+      },
+    });
+
+    return transcription._id;
   },
 });
 

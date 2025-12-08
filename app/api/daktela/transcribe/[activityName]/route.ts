@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex";
 import { getDaktelaToken } from "@/lib/daktela-token";
-import { transcribeWithWhisper } from "@/lib/transcription";
-import Groq from "groq-sdk";
+import { transcribeWithDeepgram } from "@/lib/transcription";
 
 export async function POST(
   request: NextRequest,
@@ -20,10 +19,9 @@ export async function POST(
       );
     }
 
-    // Get callId and force from query
     const { searchParams } = new URL(request.url);
-    const callId = searchParams.get('callId');
-    const force = searchParams.get('force') === 'true';
+    const callId = searchParams.get("callId");
+    const force = searchParams.get("force") === "true";
 
     if (!callId) {
       return NextResponse.json(
@@ -32,11 +30,9 @@ export async function POST(
       );
     }
 
-    // If force, delete existing transcription first
     if (force) {
       await convex.mutation(api.transcriptions.deleteTranscription, { callId });
     } else {
-      // Check if transcription already exists in Convex
       const existingTranscription = await convex.query(
         api.transcriptions.getByCallId,
         { callId }
@@ -49,15 +45,15 @@ export async function POST(
             text: existingTranscription.text,
             language_code: existingTranscription.languageCode,
             words: existingTranscription.words || [],
+            utterances: existingTranscription.utterances || [],
           },
           fromCache: true,
         });
       }
     }
 
-    // Step 1: Fetch the audio file from Daktela
     const token = await getDaktelaToken();
-    const daktelaUrl = process.env.DAKTELA_URL?.replace(/\/+$/, '');
+    const daktelaUrl = process.env.DAKTELA_URL?.replace(/\/+$/, "");
 
     if (!daktelaUrl) {
       throw new Error("DAKTELA_URL not configured");
@@ -65,7 +61,9 @@ export async function POST(
 
     const audioUrl = `${daktelaUrl}/file/recording/${activityName}?accessToken=${token}`;
 
-    console.log(`Fetching audio from: ${daktelaUrl}/file/recording/${activityName}`);
+    console.log(
+      `Fetching audio from: ${daktelaUrl}/file/recording/${activityName}`
+    );
 
     let audioResponse: Response;
     try {
@@ -75,39 +73,52 @@ export async function POST(
         },
       });
     } catch (fetchError) {
-      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      const errorMessage =
+        fetchError instanceof Error ? fetchError.message : String(fetchError);
       console.error(`Audio fetch network error: ${errorMessage}`);
-      throw new Error(`Failed to fetch audio from Daktela (network error): ${errorMessage}`);
+      throw new Error(
+        `Failed to fetch audio from Daktela (network error): ${errorMessage}`
+      );
     }
 
     if (!audioResponse.ok) {
-      const errorBody = await audioResponse.text().catch(() => 'Unable to read error body');
-      console.error(`Audio fetch HTTP error: ${audioResponse.status} ${audioResponse.statusText} - ${errorBody}`);
-      throw new Error(`Failed to fetch audio from Daktela: ${audioResponse.status} ${audioResponse.statusText}`);
+      const errorBody = await audioResponse
+        .text()
+        .catch(() => "Unable to read error body");
+      console.error(
+        `Audio fetch HTTP error: ${audioResponse.status} ${audioResponse.statusText} - ${errorBody}`
+      );
+      throw new Error(
+        `Failed to fetch audio from Daktela: ${audioResponse.status} ${audioResponse.statusText}`
+      );
     }
 
-    // Convert to buffer
     const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
 
-    // Step 2: Transcribe with Groq Whisper (includes upsampling)
-    const transcription = await transcribeWithWhisper(
-      audioBuffer,
-      `${activityName}.wav`
-    );
+    const call = await convex.query(api.calls.getByCallId, { callId });
+    const agentName = call?.agentName ?? undefined;
 
-    // Map response to existing format
+    const transcription = await transcribeWithDeepgram(audioBuffer, "pl", agentName);
+
     const transcriptionData = {
       text: transcription.text,
       language_code: transcription.language_code,
-      words: [],
+      words: transcription.words.map((w) => ({
+        text: w.word,
+        start: w.start,
+        end: w.end,
+        type: "word",
+        speaker_id: String(w.speaker),
+      })),
+      utterances: transcription.utterances,
     };
 
-    // Save to Convex
     await convex.mutation(api.transcriptions.upsertTranscription, {
       callId,
       text: transcriptionData.text,
       languageCode: transcriptionData.language_code,
       words: transcriptionData.words,
+      utterances: transcriptionData.utterances,
     });
 
     return NextResponse.json({
@@ -118,56 +129,57 @@ export async function POST(
   } catch (error) {
     console.error("Transcription error:", error);
 
-    // Handle Groq-specific errors
-    if (error instanceof Groq.AuthenticationError) {
-      return NextResponse.json(
-        { error: "Invalid Groq API key", code: "INVALID_API_KEY" },
-        { status: 401 }
-      );
-    }
-
-    // Check for file size error (413)
     if (error instanceof Error) {
-      const errorMessage = error.message || '';
-      const errorObj = error as any;
+      const errorMessage = error.message || "";
 
-      if (errorObj.status === 413 || errorMessage.includes('413') || errorMessage.includes('Too Large')) {
+      if (
+        errorMessage.includes("413") ||
+        errorMessage.includes("Too Large") ||
+        errorMessage.includes("PAYLOAD_TOO_LARGE")
+      ) {
         return NextResponse.json(
           {
-            error: "Audio file too large for transcription (max ~25MB). This call recording is too long.",
+            error:
+              "Audio file too large for transcription. This call recording is too long.",
             code: "FILE_TOO_LARGE",
           },
           { status: 413 }
         );
       }
 
-      if (errorObj.status === 429 || errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+      if (
+        errorMessage.includes("429") ||
+        errorMessage.includes("rate limit") ||
+        errorMessage.includes("RATE_LIMIT")
+      ) {
         return NextResponse.json(
           {
-            error: "Transcription rate limit exceeded. Please wait a moment and try again.",
+            error:
+              "Transcription rate limit exceeded. Please wait a moment and try again.",
             code: "RATE_LIMIT",
           },
           { status: 429 }
         );
       }
 
-      if (errorMessage.includes('Failed to fetch audio')) {
+      if (errorMessage.includes("Failed to fetch audio")) {
         return NextResponse.json(
           {
-            error: "Could not download audio recording from Daktela. The recording may not exist.",
+            error:
+              "Could not download audio recording from Daktela. The recording may not exist.",
             code: "AUDIO_NOT_FOUND",
           },
           { status: 404 }
         );
       }
 
-      if (errorMessage.includes('ffmpeg')) {
+      if (errorMessage.includes("DEEPGRAM_API_KEY")) {
         return NextResponse.json(
           {
-            error: "Audio processing failed. FFmpeg error during audio conversion.",
-            code: "FFMPEG_ERROR",
+            error: "Deepgram API key not configured",
+            code: "INVALID_API_KEY",
           },
-          { status: 500 }
+          { status: 401 }
         );
       }
     }

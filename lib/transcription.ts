@@ -1,110 +1,141 @@
-import Groq, { toFile } from "groq-sdk";
-import ffmpeg from "fluent-ffmpeg";
-import { execSync } from "child_process";
-import { writeFile, readFile, unlink } from "fs/promises";
+import { createClient } from "@deepgram/sdk";
 import { readFileSync, existsSync } from "fs";
-import { tmpdir } from "os";
 import { join } from "path";
 
-interface WhisperVocabulary {
+interface DeepgramKeytermsConfig {
   companyName?: string;
+  additionalTerms?: string[];
 }
 
-function buildWhisperPrompt(agentName?: string): string | undefined {
-  const vocabPath = join(process.cwd(), "config/whisper-vocabulary.json");
-  if (!existsSync(vocabPath)) return undefined;
+function buildKeyterms(agentName?: string): string[] {
+  const configPath = join(process.cwd(), "config/deepgram-keywords.json");
+  const keyterms: string[] = [];
 
-  try {
-    const vocab: WhisperVocabulary = JSON.parse(
-      readFileSync(vocabPath, "utf-8")
-    );
+  if (existsSync(configPath)) {
+    try {
+      const config: DeepgramKeytermsConfig = JSON.parse(
+        readFileSync(configPath, "utf-8")
+      );
 
-    const company = vocab.companyName ?? "firmy windykacyjnej";
-    const agent = agentName ? `Agent ${agentName} rozmawia` : "Agent rozmawia";
+      if (config.companyName) {
+        keyterms.push(config.companyName);
+      }
 
-    return `Rozmowa telefoniczna konsultanta windykacyjnego z firmy ${company}. ${agent} z klientem w sprawie informacji o dłużniku i jego sytuacji finansowej.`;
-  } catch {
-    return undefined;
+      if (config.additionalTerms) {
+        keyterms.push(...config.additionalTerms);
+      }
+    } catch {
+      // Config read failed, continue without keyterms
+    }
   }
+
+  if (agentName) {
+    keyterms.push(agentName);
+  }
+
+  return keyterms;
+}
+
+export interface TranscriptionWord {
+  word: string;
+  start: number;
+  end: number;
+  confidence: number;
+  speaker: number;
+  speaker_confidence?: number;
+}
+
+export interface Utterance {
+  speaker: number;
+  transcript: string;
+  start: number;
+  end: number;
 }
 
 export interface TranscriptionResult {
   text: string;
   language_code: string;
+  words: TranscriptionWord[];
+  utterances: Utterance[];
 }
 
-export function getFfmpegPath(): string {
-  const paths = [
-    "/opt/homebrew/bin/ffmpeg", // macOS ARM (local dev)
-    "/usr/local/bin/ffmpeg", // macOS Intel
-    "/usr/bin/ffmpeg", // Linux/Railway
-  ];
+function mergeConsecutiveUtterances(utterances: Utterance[]): Utterance[] {
+  if (utterances.length === 0) return [];
 
-  for (const p of paths) {
-    try {
-      execSync(`${p} -version`, { stdio: "ignore" });
-      return p;
-    } catch {}
-  }
+  const merged: Utterance[] = [];
+  let current = { ...utterances[0] };
 
-  try {
-    return execSync("which ffmpeg").toString().trim();
-  } catch {
-    throw new Error("ffmpeg not found in system");
+  for (let i = 1; i < utterances.length; i++) {
+    if (utterances[i].speaker === current.speaker) {
+      current.transcript += " " + utterances[i].transcript;
+      current.end = utterances[i].end;
+    } else {
+      merged.push(current);
+      current = { ...utterances[i] };
+    }
   }
+  merged.push(current);
+
+  return merged;
 }
 
-ffmpeg.setFfmpegPath(getFfmpegPath());
+export function formatUtterancesAsDialog(utterances: Utterance[]): string {
+  if (!utterances.length) return "";
 
-export async function upsampleAudio(audioBuffer: Buffer): Promise<Buffer> {
-  const timestamp = Date.now();
-  const inputPath = join(tmpdir(), `input-${timestamp}.mp3`);
-  const outputPath = join(tmpdir(), `output-${timestamp}.wav`);
-
-  try {
-    await writeFile(inputPath, audioBuffer);
-
-    await new Promise<void>((resolve, reject) => {
-      ffmpeg(inputPath)
-        .audioFrequency(16000)
-        .audioChannels(1)
-        .format("wav")
-        .on("end", () => resolve())
-        .on("error", reject)
-        .save(outputPath);
-    });
-
-    return await readFile(outputPath);
-  } finally {
-    await unlink(inputPath).catch(() => {});
-    await unlink(outputPath).catch(() => {});
-  }
+  return mergeConsecutiveUtterances(utterances)
+    .map((u) => `[Speaker ${u.speaker}]: ${u.transcript}`)
+    .join("\n\n");
 }
 
-export async function transcribeWithWhisper(
+export async function transcribeWithDeepgram(
   audioBuffer: Buffer,
-  filename: string,
   language: string = "pl",
   agentName?: string
 ): Promise<TranscriptionResult> {
-  const groqApiKey = process.env.GROQ_API_KEY;
-  if (!groqApiKey) {
-    throw new Error("GROQ_API_KEY not configured");
+  const apiKey = process.env.DEEPGRAM_API_KEY;
+  if (!apiKey) {
+    throw new Error("DEEPGRAM_API_KEY not configured");
   }
 
-  const groq = new Groq({ apiKey: groqApiKey });
+  const deepgram = createClient(apiKey);
+  const keyterms = buildKeyterms(agentName);
 
-  const upsampledBuffer = await upsampleAudio(audioBuffer);
+  const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+    audioBuffer,
+    {
+      model: "nova-3",
+      language,
+      diarize: true,
+      punctuate: true,
+      utterances: true,
+      smart_format: true,
+      keyterm: keyterms.length > 0 ? keyterms : undefined,
+    }
+  );
 
-  const transcription = await groq.audio.transcriptions.create({
-    file: await toFile(upsampledBuffer, filename),
-    model: "whisper-large-v3-turbo",
-    language,
-    prompt: buildWhisperPrompt(agentName),
-  });
+  if (error) {
+    throw new Error(`Deepgram transcription failed: ${error.message}`);
+  }
+
+  const channel = result.results.channels[0];
+  const alternative = channel.alternatives[0];
 
   return {
-    text: transcription.text,
+    text: alternative.transcript,
     language_code: language,
+    words: alternative.words.map((w) => ({
+      word: w.word,
+      start: w.start,
+      end: w.end,
+      confidence: w.confidence,
+      speaker: w.speaker ?? 0,
+      speaker_confidence: w.speaker_confidence,
+    })),
+    utterances: result.results.utterances?.map((u) => ({
+      speaker: u.speaker ?? 0,
+      transcript: u.transcript,
+      start: u.start,
+      end: u.end,
+    })) ?? [],
   };
 }

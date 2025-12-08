@@ -41,6 +41,16 @@ export default defineSchema({
         })
       )
     ),
+    utterances: v.optional(
+      v.array(
+        v.object({
+          speaker: v.number(),
+          transcript: v.string(),
+          start: v.number(),
+          end: v.number(),
+        })
+      )
+    ),
     qaAnalysis: v.optional(
       v.object({
         completedAt: v.number(),
@@ -62,6 +72,18 @@ export default defineSchema({
         reviewedAt: v.optional(v.string()),
         reviewedBy: v.optional(v.string()),
         fetchedAt: v.number(),
+      })
+    ),
+    clientReview: v.optional(
+      v.object({
+        reviews: v.array(
+          v.object({
+            questionId: v.string(),
+            comment: v.string(),
+            createdAt: v.number(),
+          })
+        ),
+        updatedAt: v.number(),
       })
     ),
     createdAt: v.number(),
