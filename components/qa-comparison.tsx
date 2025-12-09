@@ -55,12 +55,14 @@ export function calculateComparison(
       const aiAnswer = aiResult.answer.toLowerCase().trim();
       const humanAnswer = humanAnswers[0].toLowerCase().trim();
 
+      const isPositive = (answer: string) => answer.startsWith('tak');
+
       if (aiAnswer === humanAnswer) {
         agreement = 'agree';
         agreementCount++;
       } else if (
-        (aiAnswer.includes('tak') && humanAnswer.includes('tak')) ||
-        (aiAnswer.includes('nie') && humanAnswer.includes('nie'))
+        (isPositive(aiAnswer) && isPositive(humanAnswer)) ||
+        (!isPositive(aiAnswer) && !isPositive(humanAnswer))
       ) {
         agreement = 'agree';
         agreementCount++;
