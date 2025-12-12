@@ -3,6 +3,8 @@ export interface QaQuestion {
   question: string;
   context: string;
   reference_script?: string;
+  goodExamples?: string[];
+  badExamples?: string[];
   possibleAnswers: string[];
 }
 
