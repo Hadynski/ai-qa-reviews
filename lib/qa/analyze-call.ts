@@ -124,13 +124,20 @@ PROCES OCENY:
 
 Bądź sprawiedliwy, ale wymagający - klient płaci za wysoką jakość obsługi.`;
 
+      const goodExamplesSection = question.goodExamples?.length
+        ? `\nGood Examples (patterns that satisfy criteria):\n${question.goodExamples.map((e) => `- "${e}"`).join("\n")}\n`
+        : '';
+      const badExamplesSection = question.badExamples?.length
+        ? `\nBad Examples (patterns that do NOT satisfy criteria):\n${question.badExamples.map((e) => `- "${e}"`).join("\n")}\n`
+        : '';
+
       const userPrompt = `<transcription>
 ${formattedTranscript}
 </transcription>
 
 <evaluation_criteria>
 Question: ${question.question}
-${question.context ? `Context: ${question.context}\n` : ''}${question.reference_script ? `Reference Script: ${question.reference_script}\n` : ''}</evaluation_criteria>
+${question.context ? `Context: ${question.context}\n` : ''}${question.reference_script ? `Reference Script: ${question.reference_script}\n` : ''}${goodExamplesSection}${badExamplesSection}</evaluation_criteria>
 
 <possible_answers>
 ${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
