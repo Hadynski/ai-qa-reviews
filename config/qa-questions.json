@@ -7,7 +7,7 @@
             "Dzień dobry, [IMIĘ] z tej strony, firma Hadyński Inkaso. Kontaktuję się w sprawie zgłoszenia, które Pan/Pani zostawił/a. Chodzi o dłużnika, zgadza się?",
             "Dzień dobry, [IMIĘ], firma Hadyński Inkaso. Wypełnił Pan formularz na naszej stronie z prośbą o kontakt w sprawie dłużnika, to się zgadza?"
         ],
-f        "reference_script": "Dzień dobry, IMIĘ AGENTA, firma Hadyński Inkaso, zostawił Pan przez formularz kontaktowy na naszej stronie prośbę o kontakt w sprawie dłużnika. Zgadza się?",
+        "reference_script": "Dzień dobry, IMIĘ AGENTA, firma Hadyński Inkaso, zostawił Pan przez formularz kontaktowy na naszej stronie prośbę o kontakt w sprawie dłużnika. Zgadza się?",
         "possibleAnswers": ["Tak", "Nie"]
     },
     {
