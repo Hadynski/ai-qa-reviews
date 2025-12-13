@@ -13,17 +13,21 @@
     {
         "id": "ds_pytanie_o_imie_i_intencja_tego_po_co_nam",
         "question": "Czy agent zapytał o imię klienta oraz poinformował, dlaczego pyta o imię (np. żeby rozmowa przebiegała sprawniej, była przyjemniejsza, łatwiej było się komunikować itp.)?",
-        "context": "Oceń dwa elementy: (1) czy agent zapytał o imię lub je potwierdził, (2) czy podał INTENCJĘ pytania (np. 'żeby nam się lepiej rozmawiało', 'żeby mogła się zwracać po imieniu'). Odpowiedzi: 'Tak - potwierdzenie lub zwracanie się' - agent od początku zwraca się po imieniu (znał je wcześniej) LUB potwierdził imię bez podania intencji. 'Nie' - agent zapytał o imię BEZ podania intencji dlaczego pyta, lub w ogóle nie zapytał.",
+        "context": "Oceń dwa elementy: (1) czy agent zapytał o imię lub je potwierdził, (2) czy podał INTENCJĘ pytania. INTENCJA = jakiekolwiek wyjaśnienie 'dlaczego' pyta (np. 'żeby nam się lepiej rozmawiało', 'żeby móc się zwracać po imieniu', 'żeby lepiej nam się rozmawiało'). Odpowiedzi: 'Tak' - agent zapytał o imię I podał intencję (nawet ogólną). 'Nie' - agent zapytał o imię BEZ intencji, lub w ogóle nie zapytał o imię.",
         "goodExamples": [
             "A jak mogę się do Pana zwracać, żeby nam się lepiej rozmawiało?",
-            "Mogę prosić o imię, żebym mogła się do Pana zwracać?"
+            "Mogę prosić o imię, żebym mogła się do Pana zwracać?",
+            "A proszę mi powiedzieć z kim mam przyjemność, żeby lepiej nam się rozmawiało?",
+            "Z kim mam przyjemność, żeby nam się lepiej rozmawiało?",
+            "Jak się Pan nazywa, żebym mógł się do Pana zwracać?"
         ],
         "badExamples": [
-            "Z kim mam przyjemność?",
-            "A jak się Pan nazywa?"
+            "Z kim mam przyjemność? (bez intencji)",
+            "A jak się Pan nazywa? (bez intencji)",
+            "Jak mogę się do Pana zwracać? (samo pytanie, bez wyjaśnienia dlaczego)"
         ],
         "possibleAnswers": [
-            "Tak - potwierdzenie lub zwracanie się",
+            "Tak",
             "Nie"
         ]
     },
@@ -202,9 +206,11 @@
         "question": "Czy agent zwracał się do klienta po imieniu, np. 'Janie', 'Panie Janie', itp.?",
         "context": "Odpowiedz 'Tak' jeśli agent użył imienia klienta w JAKIEJKOLWIEK formie. Formy grzecznościowe z imieniem (Panie + imię) są w pełni akceptowalne. 'Nie' - jeśli agent w ogóle nie użył imienia klienta przez całą rozmowę.",
         "goodExamples": [
-            "Panie [IMIĘ]...",
-            "Dobrze, Panie [IMIĘ]...",
-            "[IMIĘ], proszę mi powiedzieć..."
+            "Panie Janie...",
+            "Panie Romanie...",
+            "Dobrze, Panie Tomaszu...",
+            "Adamie, proszę mi powiedzieć...",
+            "Panie Marku, a jak to wyglądało?"
         ],
         "possibleAnswers": ["Tak", "Nie"]
     },
