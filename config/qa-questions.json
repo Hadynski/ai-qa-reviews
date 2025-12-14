@@ -2,7 +2,7 @@
     {
         "id": "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na",
         "question": "Czy agent przedstawił się, podał nazwę firmy, wyjaśnił cel rozmowy i potwierdził, że klient zostawił kontakt? (wszystko musi być powiedziane na raz)",
-        "context": "Sprawdź czy na początku rozmowy agent spełnił 4 warunki: (1) przedstawił się (imię lub imię+nazwisko), (2) podał firmę 'Hadyński Inkaso', (3) wyjaśnił cel/powód kontaktu, (4) potwierdził pytaniem. UWAGA: 'zgłoszenie które Pan zostawił', 'formularz który Pan wypełnił', 'prośba o kontakt którą Pan pozostawił' = TO JEST wyjaśnienie celu i potwierdzenie kontaktu. 'Tak' - wszystkie 4 elementy obecne. 'Nie' - brakuje któregoś.",
+        "context": "Sprawdź czy na początku rozmowy agent spełnił 4 warunki: (1) przedstawił się (imię lub imię+nazwisko), (2) podał firmę 'Hadyński Inkaso', (3) wyjaśnił cel/powód kontaktu, (4) potwierdził pytaniem. UWAGA: 'zgłoszenie które Pan zostawił', 'formularz który Pan wypełnił', 'prośba o kontakt którą Pan pozostawił', 'w temacie zgłoszenia które otrzymałam/otrzymałem' = TO JEST wyjaśnienie celu i potwierdzenie kontaktu. 'Tak' - wszystkie 4 elementy obecne. 'Nie' - brakuje któregoś.",
         "goodExamples": [
             "Dzień dobry, [IMIĘ] z tej strony, firma Hadyński Inkaso. Kontaktuję się w sprawie zgłoszenia, które Pan/Pani zostawił/a. Chodzi o dłużnika, zgadza się?",
             "Dzień dobry, [IMIĘ], firma Hadyński Inkaso. Wypełnił Pan formularz na naszej stronie z prośbą o kontakt w sprawie dłużnika, to się zgadza?"
@@ -48,10 +48,12 @@
     {
         "id": "ds_intencja_do_pytan",
         "question": "Czy agent przedstawił intencję do pytań otwartych oraz zadał pytania otwarte?",
-        "context": "Odpowiedz 'Tak' TYLKO jeśli agent wypowiedział intencję do pytań otwartych/skryptowych PRZED zadaniem tych pytań. Intencja musi zawierać: (A) cel - 'żeby dobrać najlepsze rozwiązanie' ORAZ (B) zapowiedź pytań - 'zadam kilka pytań'. UWAGA: Prośba o dane dłużnika z intencją sprawdzenia w systemie to INNY punkt QA - NIE jest to intencja do pytań otwartych. 'Nie' - brak intencji lub intencja pojawia się po pytaniach.",
+        "context": "Odpowiedz 'Tak' TYLKO jeśli agent wypowiedział intencję do pytań otwartych/skryptowych PRZED zadaniem tych pytań. Intencja musi zawierać: (A) cel - 'żeby dobrać najlepsze rozwiązanie' ORAZ (B) zapowiedź pytań lub prośbę o informacje (np. 'zadam kilka pytań', 'potrzebuję więcej informacji', 'proszę mi powiedzieć więcej'). UWAGA: Prośba o dane dłużnika z intencją sprawdzenia w systemie to INNY punkt QA - NIE jest to intencja do pytań otwartych. 'Nie' - brak intencji lub intencja pojawia się po pytaniach.",
         "goodExamples": [
             "Żeby dobrać dla Pana najlepsze rozwiązanie, potrzebuję zadać jeszcze kilka pytań typowo o sprawie, dobrze?",
-            "Żeby lepiej zrozumieć sytuację i dobrać odpowiednie rozwiązanie, zadam Panu kilka pytań, okej?"
+            "Żeby lepiej zrozumieć sytuację i dobrać odpowiednie rozwiązanie, zadam Panu kilka pytań, okej?",
+            "Żeby dobrać najlepsze rozwiązanie dla Pana, potrzebuję powiedzieć więcej na temat tej firmy.",
+            "Żeby dobrać najlepsze rozwiązanie, proszę mi opowiedzieć więcej o sprawie."
         ],
         "badExamples": [
             "Poproszę o NIP, żebym mógł sprawdzić w systemie (to intencja do danych, nie do pytań otwartych)",
@@ -113,14 +115,13 @@
     {
         "id": "ds__czy_pozyskano_informacje_o_krokach_prawnych_podjetych_przez_klienta",
         "question": "Czy agent pozyskał informacje o krokach prawnych podjętych przez klienta w sprawie dłużnika?",
-        "context": "Odpowiedz 'Tak' jeśli agent ZAPYTAŁ o kroki PRAWNE podjęte przez klienta. Pytanie musi zawierać słowo 'prawne' lub odnosić się do sądu/pozwu/wezwania. 'Nie' - pytanie o kroki prawne nie padło.",
+        "context": "Odpowiedz 'Tak' jeśli agent ZAPYTAŁ o podjęte kroki/działania przez klienta. Akceptujemy zarówno pytania o kroki prawne, jak i ogólne pytania o podjęte działania (np. 'jakieś działania Pan podejmował?', 'jakieś kroki Pan podjął?'). 'Nie' - pytanie o podjęte kroki/działania nie padło.",
         "goodExamples": [
             "Czy podejmował Pan jakieś kroki prawne w tej sprawie?",
             "Planuje Pan jakieś działania prawne?",
-            "Czy wysyłał Pan wezwanie do zapłaty przez prawnika?"
-        ],
-        "badExamples": [
-            "Co Pan zrobił do tej pory? (to pytanie o ogólne działania, nie kroki prawne)"
+            "Czy wysyłał Pan wezwanie do zapłaty przez prawnika?",
+            "A pan podejmował już jakieś działania?",
+            "Jakieś kroki Pan podjął w tej sprawie?"
         ],
         "possibleAnswers": ["Tak", "Nie"]
     },
@@ -204,13 +205,15 @@
     {
         "id": "ds_zwracanie_sie_do_klienta_po",
         "question": "Czy agent zwracał się do klienta po imieniu, np. 'Janie', 'Panie Janie', itp.?",
-        "context": "Odpowiedz 'Tak' jeśli agent użył imienia klienta w JAKIEJKOLWIEK formie. Formy grzecznościowe z imieniem (Panie + imię) są w pełni akceptowalne. 'Nie' - jeśli agent w ogóle nie użył imienia klienta przez całą rozmowę.",
+        "context": "Odpowiedz 'Tak' jeśli agent użył imienia klienta w JAKIEJKOLWIEK formie. Akceptowalne są: wołacz (Panie Janie), mianownik (Pan Jan), samo imię (Jan, Janie). 'Nie' - jeśli agent w ogóle nie użył imienia klienta przez całą rozmowę.",
         "goodExamples": [
             "Panie Janie...",
             "Panie Romanie...",
             "Dobrze, Panie Tomaszu...",
             "Adamie, proszę mi powiedzieć...",
-            "Panie Marku, a jak to wyglądało?"
+            "Panie Marku, a jak to wyglądało?",
+            "Pan Sergiej...",
+            "Pan Adam, proszę posłuchać..."
         ],
         "possibleAnswers": ["Tak", "Nie"]
     },
