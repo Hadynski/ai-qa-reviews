@@ -2,7 +2,7 @@
     {
         "id": "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na",
         "question": "Czy agent przedstawił się, podał nazwę firmy, wyjaśnił cel rozmowy i potwierdził, że klient zostawił kontakt? (wszystko musi być powiedziane na raz)",
-        "context": "Sprawdź czy na początku rozmowy agent spełnił 4 warunki: (1) przedstawił się (imię lub imię+nazwisko), (2) podał firmę 'Hadyński Inkaso', (3) wyjaśnił cel/powód kontaktu, (4) potwierdził pytaniem. UWAGA: 'zgłoszenie które Pan zostawił', 'formularz który Pan wypełnił', 'prośba o kontakt którą Pan pozostawił', 'w temacie zgłoszenia które otrzymałam/otrzymałem' = TO JEST wyjaśnienie celu i potwierdzenie kontaktu. 'Tak' - wszystkie 4 elementy obecne. 'Nie' - brakuje któregoś.",
+        "context": "Sprawdź 4 elementy: (1) przedstawienie się (imię lub imię+nazwisko), (2) firma 'Hadyński Inkaso', (3) cel rozmowy, (4) potwierdzenie kontaktu. WAŻNE: Sformułowania typu 'zgłoszenie które Pan zostawił', 'formularz który Pan wypełnił', 'prośba o kontakt', 'w sprawie dłużnika' ŁĄCZĄ warunki (3) i (4) - uznaj oba za spełnione. WAŻNE: Jeśli klient SAM potwierdza przed pytaniem agenta (np. 'tak, dzwoniłem'), warunek (4) jest spełniony. Odpowiedzi: 'Tak' - wszystkie 4 elementy obecne (lub 3+4 połączone). 'Nie' - brakuje przedstawienia się LUB brakuje nazwy firmy LUB brakuje zarówno celu jak i potwierdzenia.",
         "goodExamples": [
             "Dzień dobry, [IMIĘ] z tej strony, firma Hadyński Inkaso. Kontaktuję się w sprawie zgłoszenia, które Pan/Pani zostawił/a. Chodzi o dłużnika, zgadza się?",
             "Dzień dobry, [IMIĘ], firma Hadyński Inkaso. Wypełnił Pan formularz na naszej stronie z prośbą o kontakt w sprawie dłużnika, to się zgadza?"
@@ -13,18 +13,20 @@
     {
         "id": "ds_pytanie_o_imie_i_intencja_tego_po_co_nam",
         "question": "Czy agent zapytał o imię klienta oraz poinformował, dlaczego pyta o imię (np. żeby rozmowa przebiegała sprawniej, była przyjemniejsza, łatwiej było się komunikować itp.)?",
-        "context": "Oceń dwa elementy: (1) czy agent zapytał o imię lub je potwierdził, (2) czy podał INTENCJĘ pytania. INTENCJA = jakiekolwiek wyjaśnienie 'dlaczego' pyta (np. 'żeby nam się lepiej rozmawiało', 'żeby móc się zwracać po imieniu', 'żeby lepiej nam się rozmawiało'). Odpowiedzi: 'Tak' - agent zapytał o imię I podał intencję (nawet ogólną). 'Nie' - agent zapytał o imię BEZ intencji, lub w ogóle nie zapytał o imię.",
+        "context": "ŚCIEŻKA A - PYTANIE O IMIĘ + INTENCJA: Agent zadaje pytanie o imię ORAZ wyjaśnia dlaczego pyta (np. 'żeby nam się lepiej rozmawiało', 'żeby móc się zwracać po imieniu'). ŚCIEŻKA B - POTWIERDZENIE/ZWRACANIE SIĘ PO IMIENIU: Jeżeli agent ZNAŁ imię klienta wcześniej i ZWRACA SIĘ do klienta po imieniu przez rozmowę (np. 'Panie Marcinie', 'Pani Anno'), uznaj jako TAK - nawet bez formalnego pytania o imię. Odpowiedzi: 'Tak' - Ścieżka A (pytanie+intencja) LUB Ścieżka B (zwracanie się po imieniu przez rozmowę). 'Nie' - Brak pytania o imię I brak zwracania się po imieniu.",
         "goodExamples": [
             "A jak mogę się do Pana zwracać, żeby nam się lepiej rozmawiało?",
             "Mogę prosić o imię, żebym mogła się do Pana zwracać?",
             "A proszę mi powiedzieć z kim mam przyjemność, żeby lepiej nam się rozmawiało?",
             "Z kim mam przyjemność, żeby nam się lepiej rozmawiało?",
-            "Jak się Pan nazywa, żebym mógł się do Pana zwracać?"
+            "Jak się Pan nazywa, żebym mógł się do Pana zwracać?",
+            "ŚCIEŻKA B: Agent zwraca się 'Panie Marcinie' przez całą rozmowę (znał imię wcześniej)",
+            "ŚCIEŻKA B: Agent potwierdza 'z Panem Janem mam przyjemność, zgadza się?' na początku rozmowy"
         ],
         "badExamples": [
-            "Z kim mam przyjemność? (bez intencji)",
-            "A jak się Pan nazywa? (bez intencji)",
-            "Jak mogę się do Pana zwracać? (samo pytanie, bez wyjaśnienia dlaczego)"
+            "Z kim mam przyjemność? (bez intencji - ŚCIEŻKA A niespełniona)",
+            "A jak się Pan nazywa? (bez intencji - ŚCIEŻKA A niespełniona)",
+            "Agent nie pyta o imię i nie zwraca się po imieniu przez rozmowę"
         ],
         "possibleAnswers": [
             "Tak",
@@ -89,11 +91,14 @@
     {
         "id": "ds_czy_to_pierwsza_taka_sytuacja",
         "question": "Czy agent zapytał klienta, czy to pierwsza taka sytuacja z tym dłużnikiem, że nie płaci?",
-        "context": "Odpowiedz 'Tak' jeśli agent zapytał WPROST czy to pierwsza sytuacja problemowa z tym dłużnikiem. Pytanie musi dotyczyć HISTORII problemów z płatnościami, nie przyszłych planów. 'Nie' - pytanie o historię problemów nie padło.",
+        "context": "Czy agent pytał o HISTORIĘ problemów z tym dłużnikiem. AKCEPTOWALNE PYTANIA: 'Czy to pierwsza taka sytuacja?', 'Wcześniej zdarzały się problemy?', 'Jak wcześniej wyglądała współpraca?' (jeśli w kontekście płatności), 'Czy u Pana taka sytuacja?' (w kontekscie powtarzalności), 'To się już wcześniej zdarzało?'. WARIANT B - PARAFRAZA: Jeśli klient SAM powiedział o historii współpracy, agent może sparafrazować zamiast pytać (np. 'Czyli wcześniej płacił terminowo, tak?'). Odpowiedzi: 'Tak' - padło pytanie o historię LUB parafraza wcześniejszej informacji klienta. 'Nie' - brak pytania o historię problemów z dłużnikiem.",
         "goodExamples": [
             "To była pierwsza taka sytuacja?",
             "Czy wcześniej się zdarzały problemy z płatnościami?",
-            "Przed tym przypadkiem były jakieś podobne sytuacje?"
+            "Przed tym przypadkiem były jakieś podobne sytuacje?",
+            "Jak wcześniej wyglądała współpraca z tym kontrahentem?",
+            "To się już zdarzało wcześniej?",
+            "PARAFRAZA: 'Czyli wcześniej płacił terminowo, zgadza się?' (gdy klient wcześniej sam wspomniał)"
         ],
         "badExamples": [
             "Czy planuje Pan dalszą współpracę? (to pytanie o przyszłość, nie historię)"
@@ -139,7 +144,7 @@
     {
         "id": "ds_pobranie_danych_i_intencja_do_pobrania",
         "question": "Czy agent zapytał o dane korespondencyjne dłużnika (adres, telefon, NIP) z podaniem intencji I faktycznie je uzyskał?",
-        "context": "Odpowiedz 'Tak' jeśli spełnione są OBA warunki: (1) agent zapytał o JAKIEKOLWIEK dane identyfikacyjne dłużnika (NIP, nazwa firmy, adres, telefon, VAT itp.) i wyjaśnił cel (intencja), ORAZ (2) klient podał dane. INTENCJA = wyjaśnienie po co potrzebne dane. Odpowiedz 'Nie' jeśli: brak pytania, brak intencji, lub klient odmówił. Odpowiedz 'Nie dotyczy - klient nie ma przy sobie danych' jeśli agent zapytał z intencją, ale klient nie posiada danych w momencie rozmowy.",
+        "context": "Oceniasz DZIAŁANIE AGENTA, nie wynik po stronie klienta. Odpowiedz 'Tak' jeśli agent zapytał o JAKIEKOLWIEK dane identyfikacyjne dłużnika (NIP, nazwa firmy, adres, telefon) Z intencją (np. 'żeby sprawdzić w systemie', 'żeby zweryfikować'). WAŻNE: Jeśli agent zapytał poprawnie z intencją, ale klient nie miał danych lub ich nie podał = NADAL 'Tak' (liczy się pytanie agenta). Odpowiedz 'Nie' jeśli: agent nie zapytał o dane LUB zapytał bez intencji. Odpowiedz 'Nie dotyczy - klient nie ma przy sobie danych' TYLKO gdy rozmowa nie doszła do tego etapu (np. klient zakończył wcześniej, agent nie przeszedł do tego punktu skryptu).",
         "goodExamples": [
             "Czy ma Pan NIP tego dłużnika? Żebym mógł sprawdzić w systemie.",
             "Poproszę o numer NIP, żebym mógł zweryfikować tę firmę.",
@@ -166,7 +171,7 @@
     {
         "id": "ds_zaskoczenie_tym_ze_mamy_dluznika_w_systemie__2_pytania",
         "question": "Czy agent zareagował na informację o dłużniku w systemie zgodnie ze skryptem (stwierdzenie + 2 pytania)?",
-        "context": "Odpowiedz 'Tak' jeśli agent spełnił WSZYSTKIE warunki: (1) wyraził stwierdzenie o znalezieniu dłużnika w systemie ORAZ (2) zadał DWA pytania skryptowe lub ich parafrazy: 'Pan trafił do nas z jakiegoś polecenia?' i 'Wiedział Pan o tym, że już go windykowaliśmy?'. NIE szukamy silnych emocji - wystarczy stwierdzenie + pytania. 'Nie' - brak stwierdzenia LUB brak OBU pytań skryptowych.",
+        "context": "WYMAGANE ELEMENTY: (1) Stwierdzenie o znalezieniu dłużnika w systemie (np. 'mamy go w systemie', 'świeci mi się na czerwono', 'widzę go w bazie'). (2) Pytanie o polecenie (np. 'Trafił Pan do nas z polecenia?', 'Ktoś nas polecił?') - lub parafraza/potwierdzenie jeśli klient sam wspomniał. (3) Pytanie o wiedzę o windykacji (np. 'Wiedział Pan że go windykowaliśmy?', 'Słyszał Pan o naszych działaniach?') - lub parafraza. Odpowiedzi: 'Tak' - stwierdzenie + oba pytania (lub ich parafrazy/potwierdzenia). 'Nie' - brak stwierdzenia LUB brak któregoś z pytań. 'Nie dotyczy' - klient nie podał danych / dłużnik nie w systemie / klient z polecenia (sam powiedział).",
         "goodExamples": [
             "Wie Pan co, mamy tego dłużnika w systemie...",
             "Ciekawa sytuacja, mam go w systemie...",

@@ -125,10 +125,10 @@ PROCES OCENY:
 Bądź sprawiedliwy, ale wymagający - klient płaci za wysoką jakość obsługi.`;
 
       const goodExamplesSection = question.goodExamples?.length
-        ? `\nGood Examples (patterns that satisfy criteria):\n${question.goodExamples.map((e) => `- "${e}"`).join("\n")}\n`
+        ? `\nPrzykłady PRAWIDŁOWE (spełniające kryteria):\n${question.goodExamples.map((e) => `- "${e}"`).join("\n")}\n`
         : '';
       const badExamplesSection = question.badExamples?.length
-        ? `\nBad Examples (patterns that do NOT satisfy criteria):\n${question.badExamples.map((e) => `- "${e}"`).join("\n")}\n`
+        ? `\nPrzykłady NIEPRAWIDŁOWE (NIE spełniające kryteriów):\n${question.badExamples.map((e) => `- "${e}"`).join("\n")}\n`
         : '';
 
       const userPrompt = `<transcription>
@@ -143,7 +143,7 @@ ${question.context ? `Context: ${question.context}\n` : ''}${question.reference_
 ${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
 </possible_answers>
 
-Select the most appropriate answer and provide a one-sentence justification based on the transcription.`;
+Wybierz najlepszą odpowiedź z listy i podaj jedno zdanie uzasadnienia na podstawie transkrypcji.`;
 
       const modelName = "gemini-2.5-flash-lite";
       const generation = trace?.generation({
