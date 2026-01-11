@@ -145,7 +145,7 @@ ${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
 
 Wybierz najlepszą odpowiedź z listy i podaj jedno zdanie uzasadnienia na podstawie transkrypcji.`;
 
-      const modelName = "gemini-2.5-flash-lite";
+      const modelName = "gemini-2.5-flash";
       const generation = trace?.generation({
         name: `qa-question-${question.id}`,
         model: modelName,

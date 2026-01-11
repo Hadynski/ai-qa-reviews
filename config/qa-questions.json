@@ -2,7 +2,7 @@
     {
         "id": "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na",
         "question": "Czy agent przedstawił się, podał nazwę firmy, wyjaśnił cel rozmowy i potwierdził, że klient zostawił kontakt? (wszystko musi być powiedziane na raz)",
-        "context": "Sprawdź 4 elementy: (1) przedstawienie się (imię lub imię+nazwisko), (2) firma 'Hadyński Inkaso', (3) cel rozmowy, (4) potwierdzenie kontaktu. WAŻNE: Sformułowania typu 'zgłoszenie które Pan zostawił', 'formularz który Pan wypełnił', 'prośba o kontakt', 'w sprawie dłużnika' ŁĄCZĄ warunki (3) i (4) - uznaj oba za spełnione. WAŻNE: Jeśli klient SAM potwierdza przed pytaniem agenta (np. 'tak, dzwoniłem'), warunek (4) jest spełniony. Odpowiedzi: 'Tak' - wszystkie 4 elementy obecne (lub 3+4 połączone). 'Nie' - brakuje przedstawienia się LUB brakuje nazwy firmy LUB brakuje zarówno celu jak i potwierdzenia.",
+        "context": "Sprawdź 4 elementy: (1) przedstawienie się (imię lub imię+nazwisko), (2) firma 'Hadyński Inkaso' (lub warianty: 'Chudyński Inkaso', 'Barański Inkaso'), (3) cel rozmowy, (4) potwierdzenie kontaktu. ŁĄCZENIE WARUNKÓW: Sformułowania typu 'zgłoszenie które Pan zostawił', 'formularz który Pan wypełnił', 'prośba o kontakt', 'w sprawie dłużnika' ŁĄCZĄ warunki (3) i (4). WYJĄTEK - KONTYNUACJA ROZMOWY: Jeśli agent mówi 'witam ponownie', 'dzwonię w sprawie którą rozmawialiśmy', 'kontynuujemy' - warunki (1) i (2) mogą być pominięte. WYJĄTEK - KLIENT INICJUJE: Jeśli klient SAM dzwoni i agent odpowiada 'W czym mogę pomóc?' - warunki (3) i (4) są spełnione automatycznie. Odpowiedzi: 'Tak' - wszystkie 4 elementy LUB spełnione warunki z wyjątkami. 'Nie' - brak podstawowych elementów bez wyjątku.",
         "goodExamples": [
             "Dzień dobry, [IMIĘ] z tej strony, firma Hadyński Inkaso. Kontaktuję się w sprawie zgłoszenia, które Pan/Pani zostawił/a. Chodzi o dłużnika, zgadza się?",
             "Dzień dobry, [IMIĘ], firma Hadyński Inkaso. Wypełnił Pan formularz na naszej stronie z prośbą o kontakt w sprawie dłużnika, to się zgadza?"
@@ -13,7 +13,7 @@
     {
         "id": "ds_pytanie_o_imie_i_intencja_tego_po_co_nam",
         "question": "Czy agent zapytał o imię klienta oraz poinformował, dlaczego pyta o imię (np. żeby rozmowa przebiegała sprawniej, była przyjemniejsza, łatwiej było się komunikować itp.)?",
-        "context": "ŚCIEŻKA A - PYTANIE O IMIĘ + INTENCJA: Agent zadaje pytanie o imię ORAZ wyjaśnia dlaczego pyta (np. 'żeby nam się lepiej rozmawiało', 'żeby móc się zwracać po imieniu'). ŚCIEŻKA B - POTWIERDZENIE/ZWRACANIE SIĘ PO IMIENIU: Jeżeli agent ZNAŁ imię klienta wcześniej i ZWRACA SIĘ do klienta po imieniu przez rozmowę (np. 'Panie Marcinie', 'Pani Anno'), uznaj jako TAK - nawet bez formalnego pytania o imię. Odpowiedzi: 'Tak' - Ścieżka A (pytanie+intencja) LUB Ścieżka B (zwracanie się po imieniu przez rozmowę). 'Nie' - Brak pytania o imię I brak zwracania się po imieniu.",
+        "context": "ŚCIEŻKA A - PYTANIE O IMIĘ + INTENCJA: Agent zadaje pytanie o imię ORAZ wyjaśnia dlaczego pyta. ŚCIEŻKA B - ZWRACANIE SIĘ PO IMIENIU (AUTOMATYCZNIE TAK): Jeżeli agent używa JAKIEJKOLWIEK formy imienia klienta podczas rozmowy = odpowiedź TAK. Przykłady ŚCIEŻKI B: 'Pani Aniu', 'Panie Marcinie', 'Panie Tomku', 'Pani Anno', 'Panie Jan' - każde takie użycie = TAK. WAŻNE: Nawet JEDNO użycie imienia klienta przez agenta oznacza TAK. Odpowiedzi: 'Tak' - Ścieżka A (pytanie+intencja) LUB Ścieżka B (jakiekolwiek użycie imienia klienta). 'Nie' - TYLKO gdy agent NIGDY nie użył imienia klienta przez całą rozmowę.",
         "goodExamples": [
             "A jak mogę się do Pana zwracać, żeby nam się lepiej rozmawiało?",
             "Mogę prosić o imię, żebym mogła się do Pana zwracać?",
@@ -196,7 +196,7 @@
     {
         "id": "ds_przedstawienie_dalszych_krokow_analizy_i_modulowanie",
         "question": "Czy agent jasno przedstawił klientowi dalsze kroki analizy, podkreślając indywidualne podejście?",
-        "context": "Odpowiedz 'Tak' TYLKO jeśli agent spełnił WSZYSTKIE warunki: (1) podał KONKRETNĄ godzinę kolejnego kontaktu (np. '15:30', 'o dziesiątej' - NIE 'koło południa', 'po południu', 'około 13'), (2) wspomniał o rezerwacji działu prawnego LUB windykacji i wyjaśnił cel (np. 'zarezerwuję dział prawny żeby przeanalizować', 'podejdę do chłopaków z windykacji'). 'Nie' - brak konkretnej godziny lub brak info o zaangażowaniu działu prawnego/windykacji.",
+        "context": "Odpowiedz 'Tak' jeśli agent spełnił WSZYSTKIE warunki: (1) podał godzinę kolejnego kontaktu - akceptowalne są: dokładna godzina (np. '15:30', 'o dziesiątej', 'o jedenastej') LUB przybliżona godzina z konkretną liczbą (np. 'koło dziesiątej', 'około trzynastej', 'mniej więcej o dwunastej'). NIEAKCEPTOWALNE: ogólne określenia bez godziny (np. 'po południu', 'rano', 'później'). (2) wspomniał o dziale prawnym LUB windykacji (np. 'zarezerwuję dział prawny', 'podejdę do windykacji', 'sprawdzę z chłopakami'). 'Nie' - brak godziny lub brak info o dziale prawnym/windykacji.",
         "reference_script": "Ja tutaj widzę, że na godzinę [GODZINA] mogę zarezerwować dział prawny i wraz z nim przeanalizujemy sytuację dłużnika, żeby dobrać dla Pana najskuteczniejsze rozwiązanie, czy możemy umówić się na telefon o godzinie [PODAJ GODZINĘ]?",
         "possibleAnswers": ["Tak", "Nie"]
     },
