@@ -244,7 +244,7 @@
     {
         "id": "ds_zbijanie_obiekcji__minimum_dw",
         "question": "Czy agent zbijał obiekcje klienta na temat usługi/rozwiązania minimum dwukrotnie?",
-        "context": "NAJPIERW sprawdź czy klient WYPOWIEDZIAŁ obiekcje wobec usługi/rozwiązania. Obiekcje to m.in.: pytanie o cenę ('a ile to kosztuje?'), chęć zastanowienia się, porównywanie ofert, chęć dania dłużnikowi szansy, negatywne opinie o firmie, brak czasu na dokumenty. UWAGA: Opis sytuacji dłużnika ('on nie ma firmy', 'jest w upadłości') NIE jest obiekcją. Jeśli klient NIE zgłosił obiekcji = 'Nie dotyczy - brak obiekcji'. Jeśli były obiekcje: 'Tak' = agent zbił min. 2 obiekcje. 'Nie' = były obiekcje ale agent ich nie zbijał lub zbił mniej niż 2. WAŻNE: Agent SAM wychodzący z inicjatywą (bez obiekcji klienta) = NIE liczy się jako zbijanie obiekcji.",
+        "context": "NAJPIERW sprawdź czy klient WYPOWIEDZIAŁ PRAWDZIWE obiekcje (opór, sprzeciw). CO JEST OBIEKCJĄ: 'to za drogo', 'muszę się zastanowić', 'nie jestem pewien czy chcę', 'wolę dać mu jeszcze szansę', 'słyszałem złe opinie o was', 'nie mam czasu na dokumenty', 'porównam z innymi firmami'. CO NIE JEST OBIEKCJĄ: Proste pytania informacyjne ('a ile to kosztuje?', 'jak to działa?', 'ile trwa?') - to tylko zbieranie informacji, nie opór. Opis sytuacji dłużnika ('on nie ma firmy', 'jest w upadłości') - to fakty, nie obiekcje. Jeśli klient NIE zgłosił prawdziwych obiekcji = 'Nie dotyczy - brak obiekcji'. Jeśli były obiekcje: 'Tak' = agent zbił min. 2. 'Nie' = były obiekcje ale agent zbił mniej niż 2.",
         "possibleAnswers": [
             "Tak",
             "Nie",
@@ -254,7 +254,7 @@
     {
         "id": "ds_budowanie_relacji",
         "question": "Czy agent budował relację z klientem, zadając dodatkowe pytania i okazując zainteresowanie sytuacją klienta lub jego firmy (zamiast trzymać się wyłącznie skryptu)?",
-        "context": "Budowanie relacji oznacza dzielenie sie przez agenta wlasnymi doswiadczeniami lub odczuciami. 'Tak' - agent wspomina o własnych przeżyciach, sytuacjach, opiniach lub emocjach w nawiązaniu do tego co mowi klient. Przykłady: 'Ja sie Panu nie dziwie i na Pana miejscu tez bylbym wkurzony', 'Ja też miałem taką sytuację...', 'Oo robi Pan budowlankę, a ja właśnie potrzebuję u siebie cos zbudować', 'A gdzie Pan jedzie na wakacje? O ja akurat jade xyz'. 'Nie' - agent nie dzieli sie zadnymi wlasnymi doswiadczeniami ani odczuciami. WAZNE: Dopytywanie o szczegoly (np. kwoty, terminy) lub pytania procesowe/sprzedazowe NIE SA budowaniem relacji. Liczy sie tylko osobiste odniesienie agenta.",
+        "context": "Budowanie relacji wymaga ROZBUDOWANEGO dzielenia się przez agenta własnymi doświadczeniami lub odczuciami. 'Tak' - agent opowiada o KONKRETNEJ własnej sytuacji/historii (np. 'Ja też miałem taką sytuację z klientem...', 'U mnie w rodzinie było podobnie...', 'Robi Pan budowlankę? A ja właśnie szukam kogoś do remontu'). UWAGA - TO NIE JEST BUDOWANIE RELACJI: Krótkie empatyczne komentarze typu 'rozumiem', 'nie dziwię się', 'to frustrujące', 'współczuję' = NIE (to zwykła empatia, nie budowanie relacji). Pojedyncze zdanie typu 'Z moją mamą jest to samo' BEZ rozwinięcia = NIE (zbyt krótkie). 'Nie' - brak rozbudowanego osobistego odniesienia agenta lub tylko krótkie empatyczne komentarze.",
         "possibleAnswers": ["Tak", "Nie"]
     }
 ]
