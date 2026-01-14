@@ -106,6 +106,7 @@ export default function QaComparisonPage() {
     reviewId: string;
     type: "review" | "transcribe";
   } | null>(null);
+  const [isReRunningAll, setIsReRunningAll] = useState(false);
 
   // Load data from Convex
   const transcriptionsFromDB = useQuery(api.transcriptions.list);
@@ -387,6 +388,65 @@ export default function QaComparisonPage() {
     }
   };
 
+  const handleReRunAllAiAnalysis = async () => {
+    setIsReRunningAll(true);
+    const reviewsToProcess = reviews.filter((r) => r.hasTranscription && r.callId);
+    
+    toast.info(`Starting re-analysis of ${reviewsToProcess.length} reviews...`);
+
+    for (const review of reviewsToProcess) {
+       if (!review.callId) continue;
+
+       // Update status to processing
+       setReviews((prev) => prev.map((r) => 
+           r.reviewId === review.reviewId 
+               ? { ...r, processingStatus: "processing" as ProcessingStatus } 
+               : r
+       ));
+
+       try {
+           const response = await fetch("/api/qa/analyze", {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ callId: review.callId, force: true }),
+           });
+
+           if (response.ok) {
+               await updateReviewStatus({
+                   reviewId: review.reviewId,
+                   processingStatus: "completed",
+               });
+                setReviews((prev) => prev.map((r) => 
+                   r.reviewId === review.reviewId 
+                       ? { ...r, processingStatus: "completed", hasAiAnalysis: true } 
+                       : r
+               ));
+           } else {
+               const errorData = await response.json();
+               console.error(`Failed to re-analyze ${review.reviewId}:`, errorData);
+                setReviews((prev) => prev.map((r) => 
+                   r.reviewId === review.reviewId 
+                       ? { ...r, processingStatus: "error", processingError: errorData.error || "Unknown error" } 
+                       : r
+               ));
+           }
+       } catch (e) {
+           console.error(`Error re-analyzing ${review.reviewId}`, e);
+            setReviews((prev) => prev.map((r) => 
+                   r.reviewId === review.reviewId 
+                       ? { ...r, processingStatus: "error", processingError: e instanceof Error ? e.message : "Unknown error" } 
+                       : r
+               ));
+       }
+
+       // Wait 3 seconds
+       await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    
+    setIsReRunningAll(false);
+    toast.success("Batch re-analysis completed");
+  };
+
   const processBatch = async () => {
     setBatchProcessing(true);
     // Only require activityName, not callId (we'll fetch it if needed)
@@ -644,6 +704,14 @@ export default function QaComparisonPage() {
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Fetch & Save Reviews
+              </Button>
+              <Button 
+                onClick={handleReRunAllAiAnalysis} 
+                disabled={loading || isReRunningAll || reviews.length === 0} 
+                variant="secondary"
+              >
+                {isReRunningAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                Re-run AI Analysis
               </Button>
               {reviews.length > 0 && pendingCount > 0 && (
                 <Button
