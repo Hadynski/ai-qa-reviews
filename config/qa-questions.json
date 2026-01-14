@@ -2,7 +2,7 @@
     {
         "id": "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na",
         "question": "Czy agent przedstawił się, podał nazwę firmy, wyjaśnił cel rozmowy i potwierdził, że klient zostawił kontakt? (wszystko musi być powiedziane na raz)",
-        "context": "Sprawdź 4 elementy: (1) przedstawienie się (imię lub imię+nazwisko), (2) firma 'Hadyński Inkaso' (lub warianty: 'Chudyński Inkaso', 'Barański Inkaso'), (3) cel rozmowy, (4) potwierdzenie kontaktu. ŁĄCZENIE WARUNKÓW: Sformułowania typu 'zgłoszenie które Pan zostawił', 'formularz który Pan wypełnił', 'prośba o kontakt', 'w sprawie dłużnika' ŁĄCZĄ warunki (3) i (4). WYJĄTEK - KONTYNUACJA ROZMOWY: Jeśli agent mówi 'witam ponownie', 'dzwonię w sprawie którą rozmawialiśmy', 'kontynuujemy' - warunki (1) i (2) mogą być pominięte. WYJĄTEK - KLIENT INICJUJE: Jeśli klient SAM dzwoni i agent odpowiada 'W czym mogę pomóc?' - warunki (3) i (4) są spełnione automatycznie. Odpowiedzi: 'Tak' - wszystkie 4 elementy LUB spełnione warunki z wyjątkami. 'Nie' - brak podstawowych elementów bez wyjątku.",
+        "context": "Sprawdź obecność 4 elementów na początku rozmowy: (1) Imię agenta, (2) Nazwa firmy (Hadyński/Chudyński itp.), (3) Cel (weryfikacja zgłoszenia/dłużnika), (4) Potwierdzenie kontaktu. WAŻNE: Odpowiedz 'Tak' nawet jeśli klient przerwie agentowi lub wejdzie w słowo, pod warunkiem, że te 4 elementy zostaną wypowiedziane w pierwszych 3-4 zdaniach rozmowy. Nie wymagaj, aby to było jedno idealne zdanie na jednym wydechu. Odpowiedz 'Nie' jeśli brakuje któregoś elementu.",
         "goodExamples": [
             "Dzień dobry, [IMIĘ] z tej strony, firma Hadyński Inkaso. Kontaktuję się w sprawie zgłoszenia, które Pan/Pani zostawił/a. Chodzi o dłużnika, zgadza się?",
             "Dzień dobry, [IMIĘ], firma Hadyński Inkaso. Wypełnił Pan formularz na naszej stronie z prośbą o kontakt w sprawie dłużnika, to się zgadza?"
@@ -50,7 +50,7 @@
     {
         "id": "ds_intencja_do_pytan",
         "question": "Czy agent przedstawił intencję do pytań otwartych oraz zadał pytania otwarte?",
-        "context": "Odpowiedz 'Tak' TYLKO jeśli agent wypowiedział intencję do pytań otwartych/skryptowych PRZED zadaniem tych pytań. Intencja musi zawierać: (A) cel - 'żeby dobrać najlepsze rozwiązanie' ORAZ (B) zapowiedź pytań lub prośbę o informacje (np. 'zadam kilka pytań', 'potrzebuję więcej informacji', 'proszę mi powiedzieć więcej'). UWAGA: Prośba o dane dłużnika z intencją sprawdzenia w systemie to INNY punkt QA - NIE jest to intencja do pytań otwartych. 'Nie' - brak intencji lub intencja pojawia się po pytaniach.",
+        "context": "Sprawdź, czy agent wytłumaczył klientowi, dlaczego zadaje pytania szczegółowe. Szukaj zwrotów: 'żebyśmy wiedzieli czy możemy pomóc', 'muszę ocenić sytuację', 'to pozwoli nam dobrać działania', 'zanim podejmę decyzję muszę wiedzieć'. Odpowiedz 'Tak' jeśli padło jakiekolwiek uzasadnienie potrzeby zebrania wywiadu. Odpowiedz 'Nie' tylko jeśli agent zadawał serię pytań ('suchy wywiad') bez żadnego słowa wyjaśnienia, po co mu te dane.",
         "goodExamples": [
             "Żeby dobrać dla Pana najlepsze rozwiązanie, potrzebuję zadać jeszcze kilka pytań typowo o sprawie, dobrze?",
             "Żeby lepiej zrozumieć sytuację i dobrać odpowiednie rozwiązanie, zadam Panu kilka pytań, okej?",
@@ -108,7 +108,7 @@
     {
         "id": "ds_czy_pozyskano_informacje_o_wymowkach",
         "question": "Czy agent pozyskał informacje o wymówkach dłużnika?",
-        "context": "Sprawdź, czy agent zadał pytanie celujące w weryfikację prawdomówności dłużnika lub jego tłumaczeń. Szukaj pytań typu: 'Co on panu dokładnie mówi?', 'Jak on to tłumaczy?', 'Jakich używa wymówek?', 'Co pan słyszy, gdy dzwoni?'. - Jeśli agent zapytał TYLKO o fakty (np. 'Kiedy obiecał wpłatę?', 'Ile zalega?') -> Wybierz 'Nie'. - Jeśli agent zapytał o TREŚĆ TŁUMACZEŃ dłużnika -> Wybierz 'Tak'. Liczy się inicjatywa agenta (zadanie pytania), a nie to, czy klient znał odpowiedź.",
+        "context": "Celem jest posiadanie wiedzy o tym, jak dłużnik się tłumaczy. Odpowiedz 'Tak', jeśli w transkrypcji pojawia się informacja o wymówkach/tłumaczeniach dłużnika (np. 'nie ma pieniędzy', 'czeka na przelew', 'faktura jest błędna'). Nie ma znaczenia, czy agent o to zapytał wprost, czy klient powiedział to sam w odpowiedzi na pytanie ogólne. Odpowiedz 'Nie' tylko wtedy, gdy ta informacja w ogóle nie padła.",
         "goodExamples": [
             "Jakieś wymówki stosują?",
             "Jak się tłumaczą?",
@@ -133,7 +133,7 @@
     {
         "id": "ds__czy_pozyskano_informacje_o_tym_co_klient_do_tej_pory_zrobil_w_sprawie",
         "question": "Czy agent pozyskał informacje o tym co klient do tej pory zrobił w sprawie?",
-        "context": "Odpowiedz 'Tak' jeśli agent ZAPYTAŁ co klient zrobił do tej pory w sprawie (OGÓLNIE, nie tylko prawnie). To pytanie o OGÓLNE działania, NIE to samo co pytanie o kroki PRAWNE. 'Nie' - pytanie o działania klienta nie padło.",
+        "context": "Celem jest ustalenie, czy agent posiada wiedzę o dotychczasowych działaniach klienta. Odpowiedz 'Tak', jeśli w rozmowie padły informacje o tym, jakie kroki podjął klient (np. 'dzwoniłem do niego', 'wysłałem wezwanie', 'byłem u prawnika', 'nic jeszcze nie robiłem'). Nie ma znaczenia, czy agent o to zapytał, czy klient opowiedział sam. Odpowiedz 'Nie' tylko wtedy, gdy w całej rozmowie nie ma ani słowa o tym, co klient już zrobił.",
         "goodExamples": [
             "Co Pan do tej pory zrobił w tej sprawie?",
             "Jakieś kroki Pan już podejmował na własną rękę?",
@@ -196,7 +196,7 @@
     {
         "id": "ds_przedstawienie_dalszych_krokow_analizy_i_modulowanie",
         "question": "Czy agent jasno przedstawił klientowi dalsze kroki analizy, podkreślając indywidualne podejście?",
-        "context": "Odpowiedz 'Tak' jeśli agent spełnił WSZYSTKIE warunki: (1) podał godzinę kolejnego kontaktu - akceptowalne są: dokładna godzina (np. '15:30', 'o dziesiątej', 'o jedenastej') LUB przybliżona godzina z konkretną liczbą (np. 'koło dziesiątej', 'około trzynastej', 'mniej więcej o dwunastej'). NIEAKCEPTOWALNE: ogólne określenia bez godziny (np. 'po południu', 'rano', 'później'). (2) wspomniał o dziale prawnym LUB windykacji (np. 'zarezerwuję dział prawny', 'podejdę do windykacji', 'sprawdzę z chłopakami'). 'Nie' - brak godziny lub brak info o dziale prawnym/windykacji.",
+        "context": "Odpowiedz 'Tak', jeśli agent zakomunikował, co się teraz wydarzy - czyli że musi SKONSULTOWAĆ, SPRAWDZIĆ lub PRZEANALIZOWAĆ sprawę (np. w dziale prawnym/weryfikacji) i że wróci z informacją zwrotną. Kluczowe jest wskazanie na działanie po stronie agenta przed podjęciem decyzji. Odpowiedz 'Nie', jeśli agent tylko się pożegnał lub umówił na telefon bez wyjaśnienia, co będzie robił w międzyczasie.",
         "reference_script": "Ja tutaj widzę, że na godzinę [GODZINA] mogę zarezerwować dział prawny i wraz z nim przeanalizujemy sytuację dłużnika, żeby dobrać dla Pana najskuteczniejsze rozwiązanie, czy możemy umówić się na telefon o godzinie [PODAJ GODZINĘ]?",
         "possibleAnswers": ["Tak", "Nie"]
     },
@@ -238,7 +238,7 @@
     {
         "id": "ds_umowienie_sie_na_rozmowe_z_analiza_dluznika",
         "question": "Czy agent umówił się z klientem na konkretną godzinę rozmowy z analizą dłużnika oraz poinformował, że w analizę będzie zaangażowany dział prawny lub windykatorzy?",
-        "context": "Sprawdź, czy agent umówił konkretny termin DRUGIEJ rozmowy, wyraźnie wskazując, że jej celem będzie ANALIZA, WERYFIKACJA lub RAPORT o dłużniku. - 'Zdzwonimy się jutro' (bez celu) -> Wybierz 'Nie'. - 'Zdzwonimy się, by podpisać umowę' (sprzedaż, a nie analiza) -> Wybierz 'Nie'. - 'Zdzwonimy się, przedstawię co na niego mamy/zweryfikuję go' -> Wybierz 'Tak'. Musisz usłyszeć intencję sprawdzenia dłużnika przed podjęciem współpracy.",
+        "context": "Sprawdź, czy rozmowa kończy się ustaleniem kolejnego kontaktu. Odpowiedz 'Tak', jeśli: 1) Padła propozycja terminu (może być nieprecyzyjna: 'za pół godziny', 'jutro rano', 'po południu'). 2) Agent zasugerował, że w kolejnej rozmowie przekaże WNIOSKI/WYNIKI sprawdzenia dłużnika lub decyzję o współpracy. Odpowiedz 'Nie' tylko jeśli rozmowa urwała się bez ustalenia co dalej, lub jeśli agent powiedział tylko 'do widzenia' bez zapowiedzi kontaktu.",
         "possibleAnswers": ["Tak", "Nie"]
     },
     {
