@@ -10,6 +10,7 @@ import type { Langfuse, LangfuseTraceClient } from "langfuse";
 import type { QaQuestion, QaResult } from "@/types/qa";
 
 const qaResponseSchema = z.object({
+  thought_process: z.string().describe("Chain of thought analysis with quotes from transcription and logical reasoning"),
   answer: z.string().describe("The selected answer from the possible answers list"),
   justification: z.string().describe("One sentence explaining why this answer was chosen based on the transcription"),
 });

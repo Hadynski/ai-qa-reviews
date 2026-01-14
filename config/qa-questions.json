@@ -2,13 +2,16 @@
     {
         "id": "wstep__przedstawienie_sie_i_intencja_kontaktu_w_calosci_na",
         "question": "Czy agent przedstawił się, podał nazwę firmy, wyjaśnił cel rozmowy i potwierdził, że klient zostawił kontakt? (wszystko musi być powiedziane na raz)",
-        "context": "Sprawdź obecność 4 elementów na początku rozmowy: (1) Imię agenta, (2) Nazwa firmy (Hadyński/Chudyński itp.), (3) Cel (weryfikacja zgłoszenia/dłużnika), (4) Potwierdzenie kontaktu. WAŻNE: Odpowiedz 'Tak' nawet jeśli klient przerwie agentowi lub wejdzie w słowo, pod warunkiem, że te 4 elementy zostaną wypowiedziane w pierwszych 3-4 zdaniach rozmowy. Nie wymagaj, aby to było jedno idealne zdanie na jednym wydechu. Odpowiedz 'Nie' jeśli brakuje któregoś elementu.",
+        "context": "Sprawdź wstęp rozmowy (pierwsze 3-4 zdania). Wymagane elementy (muszą paść): (1) Imię agenta, (2) Nazwa firmy (Hadyński/Chudyński itp.), (3) Cel (weryfikacja zgłoszenia/dłużnik). Opcjonalnie (zalecane, ale brak nie dyskwalifikuje, jeśli kontekst jest jasny): (4) Potwierdzenie kontaktu ('zostawił Pan zgłoszenie?', 'dzwonię w sprawie kontaktu'). Jeśli agent przedstawił się i podał cel, a klient od razu przeszedł do rzeczy - uznaj 'Tak'. Odpowiedz 'Nie' jeśli zabrakło przedstawienia się lub nazwy firmy.",
         "goodExamples": [
             "Dzień dobry, [IMIĘ] z tej strony, firma Hadyński Inkaso. Kontaktuję się w sprawie zgłoszenia, które Pan/Pani zostawił/a. Chodzi o dłużnika, zgadza się?",
             "Dzień dobry, [IMIĘ], firma Hadyński Inkaso. Wypełnił Pan formularz na naszej stronie z prośbą o kontakt w sprawie dłużnika, to się zgadza?"
         ],
         "reference_script": "Dzień dobry, IMIĘ AGENTA, firma Hadyński Inkaso, zostawił Pan przez formularz kontaktowy na naszej stronie prośbę o kontakt w sprawie dłużnika. Zgadza się?",
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_pytanie_o_imie_i_intencja_tego_po_co_nam",
@@ -36,21 +39,25 @@
     {
         "id": "ds_weryfikacja_z_jakim_typem_klienta_mamy_stycznosc",
         "question": "Czy agent zweryfikował, z jakim typem klienta ma styczność (gaduła czy zamknięty)?",
-        "context": "Klient 'gaduła' = sam z siebie podaje WIĘCEJ NIŻ JEDNĄ informację o sprawie. Klient 'zamknięty' = podaje tylko JEDNĄ krótką informację. Odpowiedz 'Tak' jeśli: (A) klient jest gadułą i agent słucha/reaguje, LUB (B) klient jest zamknięty i agent zadał pytanie pogłębiające PRZED konkretnymi pytaniami. Odpowiedz 'Nie' jeśli klient jest zamknięty, a agent od razu przeszedł do konkretnych pytań skryptowych.",
+        "context": "Oceń czy agent ZWERYFIKOWAŁ typ klienta i DOSTOSOWAŁ zachowanie. OCENA WYMAGA DWÓCH ELEMENTÓW: 1. IDENTYFIKACJA typu klienta (gaduła vs zamknięty). 2. REAKCJA adekwatna do typu. DLA GADUŁY: Agent SŁUCHA (potakuje: 'mhm', 'rozumiem', 'okej'), NIE PRZERYWA, NAWIĄZUJE do wypowiedzi klienta. DLA ZAMKNIĘTEGO: Agent zadaje pytania OTWARTE PRZED pytaniami o kwotę/czas ('Proszę opowiedzieć więcej', 'Co tam się wydarzyło?'). Odpowiedz 'Tak' tylko jeśli agent DOSTOSOWAŁ zachowanie do typu klienta. Odpowiedz 'Nie' jeśli: - Agent od razu przeszedł do pytań zamkniętych (kwota, czas) bez próby otwarcia klienta. - Agent przerwał gadułę by zadać pytanie ze skryptu. - Samo pytanie 'Co się wydarzyło?' BEZ dalszej reakcji na odpowiedź klienta. WAŻNE: Standardowe pytanie otwierające ('Proszę opowiedzieć') bez obserwacji reakcji klienta NIE jest weryfikacją typu.",
         "goodExamples": [
             "Czy mógłby Pan powiedzieć coś więcej o sprawie?",
             "Co się wydarzyło?",
             "Proszę opowiedzieć"
         ],
         "badExamples": [
-            "Agent od razu zadaje pytanie o kwotę/termin bez pytania pogłębiającego przy zamkniętym kliencie"
+            "Agent od razu zadaje pytanie o kwotę/termin bez pytania pogłębiającego przy zamkniętym kliencie",
+            "Agent przerywa klientowi 'gadule' by zadać pytanie ze skryptu"
         ],
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_intencja_do_pytan",
         "question": "Czy agent przedstawił intencję do pytań otwartych oraz zadał pytania otwarte?",
-        "context": "Sprawdź, czy agent wytłumaczył klientowi, dlaczego zadaje pytania szczegółowe. Szukaj zwrotów: 'żebyśmy wiedzieli czy możemy pomóc', 'muszę ocenić sytuację', 'to pozwoli nam dobrać działania', 'zanim podejmę decyzję muszę wiedzieć'. Odpowiedz 'Tak' jeśli padło jakiekolwiek uzasadnienie potrzeby zebrania wywiadu. Odpowiedz 'Nie' tylko jeśli agent zadawał serię pytań ('suchy wywiad') bez żadnego słowa wyjaśnienia, po co mu te dane.",
+        "context": "Sprawdź, czy agent WYRAŹNIE uzasadnił potrzebę zadawania pytań. Wymagana formuła 'CEL -> PYTANIA': 'Żeby dobrać rozwiązanie, muszę zadać kilka pytań.', 'Aby ocenić sytuację, dopytam o szczegóły.', 'Zanim przejdę dalej, muszę wiedzieć...'. WAŻNE: Intencja może paść na samym początku rozmowy lub bezpośrednio przed wywiadem. Musi zawierać element 'po co to robię' (korzyść/proces). Przykłady NIEPOPRAWNE (Odpowiedź 'Nie'): 'Proszę mi opowiedzieć, co się stało.' (To tylko pytanie otwierające), 'Muszę dopytać.' (Brak uzasadnienia DLACZEGO), 'Słucham Pana.', 'Zadam teraz kilka pytań.' (Brak celu).",
         "goodExamples": [
             "Żeby dobrać dla Pana najlepsze rozwiązanie, potrzebuję zadać jeszcze kilka pytań typowo o sprawie, dobrze?",
             "Żeby lepiej zrozumieć sytuację i dobrać odpowiednie rozwiązanie, zadam Panu kilka pytań, okej?",
@@ -59,39 +66,52 @@
         ],
         "badExamples": [
             "Poproszę o NIP, żebym mógł sprawdzić w systemie (to intencja do danych, nie do pytań otwartych)",
-            "Agent zadaje pytania bez wcześniejszej intencji"
+            "Agent zadaje pytania bez wcześniejszej intencji",
+            "Proszę mi opowiedzieć, co się stało. (To tylko pytanie otwierające)",
+            "Muszę dopytać. (Brak uzasadnienia DLACZEGO)"
         ],
         "reference_script": "Żeby dobrać najlepsze rozwiązanie dla Pana/Pani, potrzebuję zadać jeszcze kilka pytań typowo o sprawie, dobrze?",
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_czy_pozyskano_informacje_o_kwocie",
         "question": "Czy agent pozyskał informację o kwocie zadłużenia podczas rozmowy?",
-        "context": "Odpowiedz 'Tak' jeśli agent: (1) zadał pytanie o kwotę zadłużenia, LUB (2) sparafrazował/powtórzył kwotę podaną przez klienta, LUB (3) potwierdził rozumienie kwoty pytaniem. Samo usłyszenie kwoty bez reakcji agenta = 'Nie'.",
+        "context": "Sprawdź, czy w rozmowie padła informacja o kwocie zadłużenia. Odpowiedz 'Tak' w dwóch przypadkach: 1. AKTYWNIE: Agent zapytał o kwotę lub sparafrazował ją. 2. PASYWNIE: Klient sam wyraźnie podał kwotę (np. 'to jest 5000 zł', 'wiszą mi 20 tysięcy') i agent to usłyszał (nie musiał parafrazować, wystarczy że nie zaprzeczył i kontynuował rozmowę/zareagował np. 'ok', 'rozumiem'). Odpowiedz 'Nie' tylko wtedy, gdy kwota w ogóle nie padła w rozmowie lub agent całkowicie zignorował podaną informację (np. przerwał w połowie zdania i zmienił temat).",
         "goodExamples": [
             "O jakiej kwocie mówimy?",
             "Ile tam zostało do zapłaty?",
             "Jaka jest kwota zadłużenia?",
             "Rozumiem, że zostało około [KWOTA], dobrze rozumiem?"
         ],
-        "possibleAnswers": ["Tak", "Nie", "Nie dotyczy - klient nie pamięta"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie",
+            "Nie dotyczy - klient nie pamięta"
+        ]
     },
     {
         "id": "ds_czy_pozyskano_jaki_czas_zalega",
         "question": "Czy agent pozyskał informacje o tym, jaki czas dłużnik zalega klientowi dług?",
-        "context": "Odpowiedz 'Tak' jeśli agent zapytał lub sparafrazował informację o czasie zalegania. Pytanie o daty faktur też jest pytaniem o czas zalegania. 'Nie' - pytanie nie padło. 'Nie dotyczy - klient nie pamięta' - agent zapytał ale klient nie pamięta.",
+        "context": "Sprawdź, czy ustalono, od jakiego czasu występuje zadłużenie. Odpowiedz 'Tak' jeśli: 1. Agent zapytał o czas zalegania (np. 'od kiedy nie płacą?'). 2. Agent sparafrazował czas podany przez klienta. 3. Klient sam spontanicznie podał tę informację (np. 'faktura jest z stycznia', 'już 3 miesiące czekam'), a informacja ta jest jednoznaczna i agent ją przyjął. Odpowiedz 'Nie' tylko przy całkowitym braku tej informacji.",
         "goodExamples": [
             "Kiedy upłynął termin płatności?",
             "Jaki czas zalegają?",
             "Od kiedy nie płacą?",
             "Z kiedy są te faktury?"
         ],
-        "possibleAnswers": ["Tak", "Nie", "Nie dotyczy - klient nie pamięta"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie",
+            "Nie dotyczy - klient nie pamięta"
+        ]
     },
     {
         "id": "ds_czy_to_pierwsza_taka_sytuacja",
         "question": "Czy agent zapytał klienta, czy to pierwsza taka sytuacja z tym dłużnikiem, że nie płaci?",
-        "context": "Czy agent pytał o HISTORIĘ problemów z tym dłużnikiem. AKCEPTOWALNE PYTANIA: 'Czy to pierwsza taka sytuacja?', 'Wcześniej zdarzały się problemy?', 'Jak wcześniej wyglądała współpraca?' (jeśli w kontekście płatności), 'Czy u Pana taka sytuacja?' (w kontekscie powtarzalności), 'To się już wcześniej zdarzało?'. WARIANT B - PARAFRAZA: Jeśli klient SAM powiedział o historii współpracy, agent może sparafrazować zamiast pytać (np. 'Czyli wcześniej płacił terminowo, tak?'). Odpowiedzi: 'Tak' - padło pytanie o historię LUB parafraza wcześniejszej informacji klienta. 'Nie' - brak pytania o historię problemów z dłużnikiem.",
+        "context": "Sprawdź, czy AGENT AKTYWNIE pozyskał informację o historii płatności. Odpowiedz 'Tak' TYLKO jeśli: 1. Agent ZAPYTAŁ czy to pierwsza taka sytuacja z PŁATNOŚCIAMI (np. 'To pierwsza taka sytuacja?', 'Wcześniej też były problemy z płatnościami?'). 2. Agent SPARAFRAZOWAŁ informację podaną przez klienta (np. 'Czyli wcześniej płacił terminowo?'). Odpowiedz 'Nie' jeśli: - Klient SAM wspomniał o historii bez pytania agenta (pasywne pozyskanie nie liczy się). - Agent pytał tylko o długość współpracy ('Jak długo współpracujecie?') bez pytania o PROBLEMY. - Agent pytał 'Czy to stały kontrahent?' (to nie jest pytanie o problemy z płatnościami). FILOZOFIA: PROCES > WYNIK. Liczy się czy agent ZAPYTAŁ, nie czy informacja padła.",
         "goodExamples": [
             "To była pierwsza taka sytuacja?",
             "Czy wcześniej się zdarzały problemy z płatnościami?",
@@ -103,24 +123,30 @@
         "badExamples": [
             "Czy planuje Pan dalszą współpracę? (to pytanie o przyszłość, nie historię)"
         ],
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_czy_pozyskano_informacje_o_wymowkach",
         "question": "Czy agent pozyskał informacje o wymówkach dłużnika?",
-        "context": "Celem jest posiadanie wiedzy o tym, jak dłużnik się tłumaczy. Odpowiedz 'Tak', jeśli w transkrypcji pojawia się informacja o wymówkach/tłumaczeniach dłużnika (np. 'nie ma pieniędzy', 'czeka na przelew', 'faktura jest błędna'). Nie ma znaczenia, czy agent o to zapytał wprost, czy klient powiedział to sam w odpowiedzi na pytanie ogólne. Odpowiedz 'Nie' tylko wtedy, gdy ta informacja w ogóle nie padła.",
+        "context": "Celem jest ustalenie reakcji dłużnika na windykację. Odpowiedz 'Tak', jeśli w rozmowie pojawia się informacja o: 1. Konkretnych wymówkach (np. 'nie ma pieniędzy', 'zapłaci jutro'). 2. BRAKU KONTAKTU / unikaniu kontaktu (np. 'nie odbiera', 'zablokował mnie', 'cisza', 'zapadł się pod ziemię'). Informacja 'nie ma z nim kontaktu' JEST pozyskaniem wiedzy o wymówkach (a raczej ich braku). Nie ma znaczenia, czy agent zapytał wprost, czy klient sam to opisał.",
         "goodExamples": [
             "Jakieś wymówki stosują?",
             "Jak się tłumaczą?",
             "Czy kontakt się urwał?",
             "Jakie powody podają za brak płatności?"
         ],
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds__czy_pozyskano_informacje_o_krokach_prawnych_podjetych_przez_klienta",
         "question": "Czy agent pozyskał informacje o krokach prawnych podjętych przez klienta w sprawie dłużnika?",
-        "context": "Odpowiedz 'Tak' jeśli agent ZAPYTAŁ o podjęte kroki/działania przez klienta. Akceptujemy zarówno pytania o kroki prawne, jak i ogólne pytania o podjęte działania (np. 'jakieś działania Pan podejmował?', 'jakieś kroki Pan podjął?'). 'Nie' - pytanie o podjęte kroki/działania nie padło.",
+        "context": "Sprawdź, czy AGENT AKTYWNIE zapytał o kroki PRAWNE/FORMALNE. Odpowiedz 'Tak' TYLKO jeśli agent zadał pytanie SPECYFICZNIE o działania prawne/formalne: - 'Podejmował Pan jakieś kroki prawne?' - 'Był Pan u prawnika?' - 'Wysyłał Pan wezwanie do zapłaty?' - 'Sprawa była w sądzie?' - 'Jakieś formalne działania Pan podjął?'. Odpowiedz 'Nie' jeśli: - Agent pytał OGÓLNIE 'co Pan robił?' bez kontekstu prawnego. - Klient SAM wspomniał o działaniach bez pytania agenta. - Agent pytał tylko o kontakt z dłużnikiem ('Dzwonił Pan do niego?'). UWAGA: Pytanie 'Co Pan do tej pory zrobił?' jest oceniane w INNYM pytaniu (ds_co_klient_zrobil). TUTAJ oceniamy TYLKO pytania o kroki PRAWNE/FORMALNE.",
         "goodExamples": [
             "Czy podejmował Pan jakieś kroki prawne w tej sprawie?",
             "Planuje Pan jakieś działania prawne?",
@@ -128,23 +154,29 @@
             "A pan podejmował już jakieś działania?",
             "Jakieś kroki Pan podjął w tej sprawie?"
         ],
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds__czy_pozyskano_informacje_o_tym_co_klient_do_tej_pory_zrobil_w_sprawie",
         "question": "Czy agent pozyskał informacje o tym co klient do tej pory zrobił w sprawie?",
-        "context": "Celem jest ustalenie, czy agent posiada wiedzę o dotychczasowych działaniach klienta. Odpowiedz 'Tak', jeśli w rozmowie padły informacje o tym, jakie kroki podjął klient (np. 'dzwoniłem do niego', 'wysłałem wezwanie', 'byłem u prawnika', 'nic jeszcze nie robiłem'). Nie ma znaczenia, czy agent o to zapytał, czy klient opowiedział sam. Odpowiedz 'Nie' tylko wtedy, gdy w całej rozmowie nie ma ani słowa o tym, co klient już zrobił.",
+        "context": "Sprawdź, czy AGENT AKTYWNIE zapytał o dotychczasowe działania klienta. Odpowiedz 'Tak' TYLKO jeśli: 1. Agent ZAPYTAŁ 'Co Pan do tej pory robił w tej sprawie?' / 'Jakieś działania Pan podejmował?' / 'Próbował Pan się kontaktować?'. 2. Agent SPARAFRAZOWAŁ działania klienta ('Czyli próbował Pan dzwonić i pisać?'). Odpowiedz 'Nie' jeśli: - Klient SAM opowiedział o działaniach bez pytania agenta (pasywne pozyskanie). - Informacja pojawiła się 'przy okazji' odpowiadania na inne pytanie. - Agent nie zadał żadnego pytania o działania klienta. FILOZOFIA: PROCES > WYNIK. Liczy się czy agent ZAPYTAŁ, nie czy informacja padła w rozmowie.",
         "goodExamples": [
             "Co Pan do tej pory zrobił w tej sprawie?",
             "Jakieś kroki Pan już podejmował na własną rękę?",
             "Wysyłał Pan jakieś wezwania do zapłaty?"
         ],
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_pobranie_danych_i_intencja_do_pobrania",
         "question": "Czy agent zapytał o dane korespondencyjne dłużnika (adres, telefon, NIP) z podaniem intencji I faktycznie je uzyskał?",
-        "context": "Oceniasz DZIAŁANIE AGENTA, nie wynik po stronie klienta. Odpowiedz 'Tak' jeśli agent zapytał o JAKIEKOLWIEK dane identyfikacyjne dłużnika (NIP, nazwa firmy, adres, telefon) Z intencją (np. 'żeby sprawdzić w systemie', 'żeby zweryfikować'). WAŻNE: Jeśli agent zapytał poprawnie z intencją, ale klient nie miał danych lub ich nie podał = NADAL 'Tak' (liczy się pytanie agenta). Odpowiedz 'Nie' jeśli: agent nie zapytał o dane LUB zapytał bez intencji. Odpowiedz 'Nie dotyczy - klient nie ma przy sobie danych' TYLKO gdy rozmowa nie doszła do tego etapu (np. klient zakończył wcześniej, agent nie przeszedł do tego punktu skryptu).",
+        "context": "Czy agent dążył do precyzyjnej identyfikacji dłużnika? Odpowiedz 'Tak' jeśli: 1. Agent poprosił o NIP/dane (nazwa, adres) z intencją sprawdzenia/weryfikacji. 2. LUB agent SAM odnalazł dłużnika w systemie (np. po nazwie podanej przez klienta) i potwierdził to z klientem ('Czy to ta firma z Krakowa?'). Intencją jest weryfikacja. Jeśli agent mówi 'poszukam go sobie' i znajduje - warunek spełniony. Odpowiedz 'Nie dotyczy' tylko gdy rozmowa nie doszła do tego etapu.",
         "goodExamples": [
             "Czy ma Pan NIP tego dłużnika? Żebym mógł sprawdzić w systemie.",
             "Poproszę o numer NIP, żebym mógł zweryfikować tę firmę.",
@@ -160,18 +192,21 @@
     {
         "id": "ds_pytanie_o_dalsza_wspolprace_z_dluznikiem_i_modulowanie",
         "question": "Czy agent zadał wprost pytanie, czy klientowi zależy na utrzymaniu dobrej relacji z dłużnikiem lub dalszej współpracy? (Szukamy wypowiedzi typu: 'Czy chce Pan dalej współpracować z dłużnikiem?' albo 'Czy zależy Panu na utrzymaniu pozytywnych relacji?')",
-        "context": "Odpowiedz 'Tak' jeśli agent zadał pytanie o dalszą współpracę/relacje z dłużnikiem. Również akceptowalne: agent stwierdza intencję klienta i klient potwierdza. 'Nie' - pytanie w ogóle nie padło.",
+        "context": "Czy ustalono nastawienie klienta do dalszej współpracy z dłużnikiem? Odpowiedz 'Tak' jeśli: 1. Agent zapytał o plany współpracy. 2. Klient sam wyraźnie określił, że zrywa współpracę (np. 'to oszust', 'nigdy więcej', 'już z nim nie robię', 'nie chcę go znać'). 3. Agent sparafrazował brak chęci współpracy ('czyli rozumiem, że to koniec relacji').",
         "goodExamples": [
             "Czy planuje Pan dalszą współpracę z tym dłużnikiem?",
             "Zależy Panu na utrzymaniu relacji z tą firmą?",
             "Gdyby zapłacili, to dalej byście współpracowali?"
         ],
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_zaskoczenie_tym_ze_mamy_dluznika_w_systemie__2_pytania",
         "question": "Czy agent zareagował na informację o dłużniku w systemie zgodnie ze skryptem (stwierdzenie + 2 pytania)?",
-        "context": "WYMAGANE ELEMENTY: (1) Stwierdzenie o znalezieniu dłużnika w systemie (np. 'mamy go w systemie', 'świeci mi się na czerwono', 'widzę go w bazie'). (2) Pytanie o polecenie (np. 'Trafił Pan do nas z polecenia?', 'Ktoś nas polecił?') - lub parafraza/potwierdzenie jeśli klient sam wspomniał. (3) Pytanie o wiedzę o windykacji (np. 'Wiedział Pan że go windykowaliśmy?', 'Słyszał Pan o naszych działaniach?') - lub parafraza. Odpowiedzi: 'Tak' - stwierdzenie + oba pytania (lub ich parafrazy/potwierdzenia). 'Nie' - brak stwierdzenia LUB brak któregoś z pytań. 'Nie dotyczy' - klient nie podał danych / dłużnik nie w systemie / klient z polecenia (sam powiedział).",
+        "context": "Sprawdź reakcję na dłużnika w systemie. 1. Jeśli klient jest 'z polecenia' lub 'powracający' (mówi o tym sam) -> Odpowiedz 'Nie dotyczy' (lub 'Tak' jeśli agent nawiązał). 2. W innym przypadku wymagane: Stwierdzenie ('Mamy go w systemie/widzę go/sprawdzam go') ORAZ przynajmniej jedno pytanie weryfikujące (jeśli ma sens): 'Trafił Pan z polecenia?' LUB 'Wiedział Pan, że go windykujemy?'. Brak stwierdzenia o obecności w bazie = NIE.",
         "goodExamples": [
             "Wie Pan co, mamy tego dłużnika w systemie...",
             "Ciekawa sytuacja, mam go w systemie...",
@@ -189,28 +224,37 @@
     {
         "id": "ds_nadanie_wartosci_przeprowadzanej_analizie__ograniczenie",
         "question": "Czy agent jasno przedstawił klientowi wartość wstępnej analizy sprawy (sprawdzenie dłużnika w systemach, ocena szans na odzyskanie należności i uniknięcie marnowania czasu oraz pieniędzy klienta)?",
-        "context": "Zaznacz „Tak”, jeśli agent wyraźnie wyjaśnił, na czym polega wartość analizy dla klienta, odwołując się do bezpłatnego sprawdzenia dłużnika i oceny realnych szans ściągnięcia długu. 'Nie', jeśli wspomniał o analizie, ale bez podkreślenia korzyści dla klienta.",
+        "context": "Sprawdź czy agent nadał WARTOŚĆ analizie. Odpowiedz 'Tak' TYLKO jeśli agent przekazał CO NAJMNIEJ 2 z 3 elementów: 1. MOŻLIWOŚĆ NIEPRZYJĘCIA: 'może być tak, że nie będę w stanie przyjąć sprawy'. 2. POWÓD ANALIZY: 'dbamy o skuteczność', 'sprawdzamy dłużnika', 'weryfikujemy'. 3. KORZYŚĆ DLA KLIENTA: 'szkoda Pana czasu', 'żeby nie marnować pieniędzy'. Odpowiedz 'Nie' jeśli: - Samo 'sprawdzę dłużnika' bez kontekstu korzyści. - Samo 'dam znać jak będzie' bez wyjaśnienia procesu. - Ogólnikowe stwierdzenia bez konkretów. WZORCOWA WYPOWIEDŹ: 'Może być tak, że nie będę w stanie przyjąć Pana sprawy, bo dbamy o skuteczność i sprawdzamy dłużnika. Jeśli okaże się, że nic nie ściągniemy, szkoda Pana i naszego czasu.'",
         "reference_script": "Panie [IMIĘ KLIENTA], powiem Panu wprost, może być tak, że nie będę w stanie przyjąć Pana sprawy. Z racji tego, że dbamy o naszą skuteczność, zawsze zanim przyjmiemy zlecenie sprawdzamy sobie dłużnika, zwłaszcza że jak sam Pan widzi, Pana dłużnika już mamy w systemie, więc tym bardziej jest co sprawdzać. Jeśli okaże się, że z Pańskiego dłużnika nic nie ściągniemy, szkoda zarówno Pana, jak i naszego czasu. Jeżeli otrzymam od chłopaków z windykacji zielone światło na przyjęcie zlecenia, to powiem Panu, jak to wszystko będzie wyglądało.",
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_przedstawienie_dalszych_krokow_analizy_i_modulowanie",
         "question": "Czy agent jasno przedstawił klientowi dalsze kroki analizy, podkreślając indywidualne podejście?",
-        "context": "Odpowiedz 'Tak', jeśli agent zakomunikował, co się teraz wydarzy - czyli że musi SKONSULTOWAĆ, SPRAWDZIĆ lub PRZEANALIZOWAĆ sprawę (np. w dziale prawnym/weryfikacji) i że wróci z informacją zwrotną. Kluczowe jest wskazanie na działanie po stronie agenta przed podjęciem decyzji. Odpowiedz 'Nie', jeśli agent tylko się pożegnał lub umówił na telefon bez wyjaśnienia, co będzie robił w międzyczasie.",
+        "context": "Sprawdź czy agent KONKRETNIE przedstawił dalsze kroki. Odpowiedz 'Tak' TYLKO jeśli agent podał MINIMUM 2 z 3 elementów: 1. KTO: 'dział prawny', 'windykacja', 'chłopaki z windykacji', 'dział analiz'. 2. CO: 'przeanalizujemy', 'sprawdzimy dłużnika', 'zweryfikujemy'. 3. KIEDY WRÓCĘ: 'zadzwonię z informacją', 'wrócę do Pana', 'dam znać o [GODZINA]'. Styl może być potoczny ('podejdę do chłopaków'). Odpowiedz 'Nie' jeśli: - Samo 'zadzwonię później' bez informacji CO się wydarzy. - Samo 'dam znać' bez wyjaśnienia procesu. - Samo 'sprawdzę' bez wskazania KTO i JAK. - Umówienie się na telefon BEZ wyjaśnienia co agent zrobi w międzyczasie. WZORCOWA WYPOWIEDŹ: 'Zarezerwuję sobie dział prawny i przeanalizujemy sytuację dłużnika. Zadzwonię do Pana o 14:00 z informacją zwrotną.'",
         "reference_script": "Ja tutaj widzę, że na godzinę [GODZINA] mogę zarezerwować dział prawny i wraz z nim przeanalizujemy sytuację dłużnika, żeby dobrać dla Pana najskuteczniejsze rozwiązanie, czy możemy umówić się na telefon o godzinie [PODAJ GODZINĘ]?",
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_informacja_o_bezplatnej",
         "question": "Czy agent przekazał klientowi informację o tym, że analiza jego dłużnika jest bezpłatna?",
-        "context": "Odpowiedź 'Tak', jeśli agent wyraźnie wypowiedział informację o bezpłatnej analizie (np. 'Oczywiście taka analiza będzie dla Pana całkowicie bezpłatna.'). Odpowiedź 'Nie', jeśli nie wypowiedział tej informacji.",
+        "context": "Czy agent poinformował, że ten etap (analiza/weryfikacja) jest darmowy? Szukaj słów: 'bezpłatna', 'darmowa', 'bez kosztów', 'nic Pan nie płaci', 'na nasz koszt'. Jeśli agent mówi tylko 'zrobimy analizę' bez wzmianki o braku opłat -> NIE.",
         "reference_script": "Oczywiście taka analiza będzie dla Pana całkowicie bezpłatna.",
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_zwracanie_sie_do_klienta_po",
         "question": "Czy agent zwracał się do klienta po imieniu, np. 'Janie', 'Panie Janie', itp.?",
-        "context": "Odpowiedz 'Tak' jeśli agent użył imienia klienta w JAKIEJKOLWIEK formie. Akceptowalne są: wołacz (Panie Janie), mianownik (Pan Jan), samo imię (Jan, Janie). 'Nie' - jeśli agent w ogóle nie użył imienia klienta przez całą rozmowę.",
+        "context": "Sprawdź, czy agent użył imienia klienta (w wołaczu: 'Panie Piotrze' lub mianowniku: 'Pan Piotr') w trakcie całej rozmowy. Zasada oceny: Użycie min. 2 razy w trakcie całej rozmowy (wliczając powitanie i pożegnanie) -> TAK. Użycie 0-1 razy -> NIE. Samo 'Dzień dobry Panie Piotrze' na początku to za mało. Musi paść jeszcze raz (np. w środku lub na koniec).",
         "goodExamples": [
             "Panie Janie...",
             "Panie Romanie...",
@@ -220,31 +264,43 @@
             "Pan Sergiej...",
             "Pan Adam, proszę posłuchać..."
         ],
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_pauzy_w_rozmowie",
         "question": "Czy rozmowa brzmi naturalnie, tzn. czy agent robi krótkie pauzy/zastanowienia zamiast czytać skrypt jednym ciągiem?",
-        "context": "Oceń, czy brzmienie rozmowy przypomina naturalną rozmowę, a nie odczytywanie skryptu. 'Tak' - rozmowa zawiera naturalne zwroty konwersacyjne (np. 'okej', 'dobra', 'no właśnie', pytania pogłębiające, reakcje na wypowiedzi klienta), agent reaguje na to co mówi klient. 'Nie' - widoczne jest monotonne recytowanie skryptu bez żadnej interakcji, agent nie reaguje na wypowiedzi klienta.",
-        "possibleAnswers": ["Tak", "Nie"]
+        "context": "Oceń, czy rozmowa brzmi NATURALNIE (nie jak skrypt). Odpowiedz 'Tak' TYLKO jeśli występują MINIMUM 3 z poniższych elementów: 1. Naturalne wtrącenia: 'no właśnie', 'kurczę', 'wie pan co', 'okej'. 2. Reakcje na emocje klienta (nie tylko 'rozumiem'). 3. Pytania pogłębiające WYNIKAJĄCE z kontekstu wypowiedzi klienta. 4. Dostosowanie tempa do klienta. 5. Spontaniczne komentarze agenta. Odpowiedz 'Nie' jeśli: - Agent przechodzi przez pytania jak przez checklistę. - Brak naturalnych zwrotów konwersacyjnych. - Agent nie reaguje na historie/emocje klienta. - Rozmowa brzmi jak wywiad/ankieta. UWAGA: Samo czekanie na odpowiedź klienta NIE jest pauzą. Samo 'rozumiem', 'okej' po każdej wypowiedzi to za mało - musi być AUTENTYCZNA reakcja.",
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_brak_informacji_o_warunkach_wspolpracy_cenasankcjenota",
         "question": "Czy przekazano klientowi informacje o warunkach współpracy: Cena/sankcje/nota",
-        "context": "Jeśli klient sam wyjdzie z informacją o windykacji na koszt klienta to powiedzenie o nocie nie jest błędem - akceptowalne jest potwierdzenie informacji, które klient już posiada. Jeśli informacja o bezpłatnej analizie jest zbijaniem jakiejś obiekcji to nie jest to błąd (bez szczegółów, procentów itp). WAŻNE: Informacja o 'bezpłatnej analizie' NIE jest informacją o warunkach współpracy. Warunki współpracy to: konkretna cena usługi windykacyjnej, procent prowizji, sankcje, nota. Odpowiedz 'Tak' tylko jeśli agent podał któryś z tych szczegółów. Samo wspomnienie że analiza jest bezpłatna = odpowiedz 'Nie'.",
+        "context": "To pytanie ocenia czy agent NIE podal warunkow wspolpracy na TYM etapie rozmowy. Odpowiedz 'Tak' (czyli agent DOBRZE NIE podal warunkow) jesli: Agent NIE wymienil konkretnej stawki prowizji (np. '15%'), sankcji, kosztów. Agent ewentualnie wspominal OGOLNIE o modelu rozliczenia (np. 'rozliczamy sie za sukces') - to jest OK. Odpowiedz 'Nie' (czyli agent BLEDNIE podal warunki) jesli: Agent wymienil konkretna stawke prowizji, sankcje lub koszty przed analiza dłużnika. WAŻNE: Ogolnikowe stwierdzenie 'rozliczamy sie za sukces' lub 'nie ma platnosci na start' NIE jest podawaniem warunkow - to tylko ogolna informacja o modelu. Warunki to KONKRETNE liczby i stawki.",
         "note": "te 3 konkretne rzeczy sa troche jak tabu - odsuwamy klienta od odpowiedzi od razu, potrzebujym czasu na analize",
-        "possibleAnswers": ["Tak", "Nie"]
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_umowienie_sie_na_rozmowe_z_analiza_dluznika",
         "question": "Czy agent umówił się z klientem na konkretną godzinę rozmowy z analizą dłużnika oraz poinformował, że w analizę będzie zaangażowany dział prawny lub windykatorzy?",
-        "context": "Sprawdź, czy rozmowa kończy się ustaleniem kolejnego kontaktu. Odpowiedz 'Tak', jeśli: 1) Padła propozycja terminu (może być nieprecyzyjna: 'za pół godziny', 'jutro rano', 'po południu'). 2) Agent zasugerował, że w kolejnej rozmowie przekaże WNIOSKI/WYNIKI sprawdzenia dłużnika lub decyzję o współpracy. Odpowiedz 'Nie' tylko jeśli rozmowa urwała się bez ustalenia co dalej, lub jeśli agent powiedział tylko 'do widzenia' bez zapowiedzi kontaktu.",
-        "possibleAnswers": ["Tak", "Nie"]
+        "context": "Sprawdź czy rozmowa kończy się KONKRETNYM ustaleniem. Odpowiedz 'Tak' TYLKO jeśli występują OBYDWA elementy: 1. TERMIN: Propozycja czasu (może być przybliżona: 'za pół godziny', 'jutro rano', 'o 14', 'po południu'). 2. CEL: Agent zasygnalizował że przekaże WYNIKI/WNIOSKI sprawdzenia ('z informacją zwrotną', 'powiem co się udało ustalić', 'dam znać czy możemy przyjąć'). Odpowiedz 'Nie' jeśli: - Tylko 'do widzenia' bez ustaleń. - Samo 'zadzwonię' bez określenia KIEDY. - Ustalenie terminu BEZ celu ('zadzwonię o 14' - po co?). - Samo 'dam znać' bez terminu. UWAGA: Nie wymaga się wzmiankowania 'działu prawnego' - wystarczy że agent powie że przekaże wyniki/decyzję.",
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     },
     {
         "id": "ds_zbijanie_obiekcji__minimum_dw",
         "question": "Czy agent zbijał obiekcje klienta na temat usługi/rozwiązania minimum dwukrotnie?",
-        "context": "ALGORYTM OCENY: KROK 1: Czy w rozmowie padły wyraźne słowa oporu ('nie chcę', 'za drogo', 'nie mam czasu', 'muszę przemyśleć')? - Pytania o cenę, ofertę lub proces TO NIE SĄ OBIEKCJE -> Wybierz 'Nie dotyczy - brak obiekcji'. - Opis trudnej sytuacji dłużnika TO NIE SĄ OBIEKCJE -> Wybierz 'Nie dotyczy - brak obiekcji'. KROK 2: Jeśli padły PRAWDZIWE obiekcje, policz, ile razy agent na nie zareagował argumentem (zbił je). - Jeśli zbił 0 lub 1 raz -> Wybierz 'Nie'. - Jeśli zbił 2 lub więcej razy -> Wybierz 'Tak'. UWAGA: Jeśli klient nie miał obiekcji, pod żadnym pozorem nie wybieraj 'Nie' ani 'Tak'.",
+        "context": "ALGORYTM OCENY: KROK 1 - IDENTYFIKACJA OBIEKCJI: Obiekcje to WYRAŹNE słowa oporu wobec usługi/procesu: 'nie chcę', 'za drogo', 'nie mam czasu', 'muszę przemyśleć', 'już próbowałem i nie wyszło', 'inna firma już się tym zajmuje', 'nie wiem czy to ma sens', 'może później'. NIE SĄ OBIEKCJAMI: pytania informacyjne ('ile to kosztuje?'), opis sytuacji dłużnika ('on nie ma pieniędzy'), bariery techniczne ('nie mam teraz NIP-u'). KROK 2 - LICZENIE ZBIĆ: Agent musi użyć ARGUMENTÓW MERYTORYCZNYCH (nie samo 'rozumiem'). 0-1 zbić = 'Nie'. 2+ zbić = 'Tak'. Brak obiekcji = 'Nie dotyczy'. WAŻNE: Jeśli klient mówi że już współpracuje z inną firmą windykacyjną i agent przekonuje go że warto jednak porozmawiać - TO JEST zbijanie obiekcji.",
         "possibleAnswers": [
             "Tak",
             "Nie",
@@ -254,7 +310,10 @@
     {
         "id": "ds_budowanie_relacji",
         "question": "Czy agent budował relację z klientem, zadając dodatkowe pytania i okazując zainteresowanie sytuacją klienta lub jego firmy (zamiast trzymać się wyłącznie skryptu)?",
-        "context": "Budowanie relacji wymaga ROZBUDOWANEGO dzielenia się przez agenta własnymi doświadczeniami lub odczuciami. 'Tak' - agent opowiada o KONKRETNEJ własnej sytuacji/historii (np. 'Ja też miałem taką sytuację z klientem...', 'U mnie w rodzinie było podobnie...', 'Robi Pan budowlankę? A ja właśnie szukam kogoś do remontu'). UWAGA - TO NIE JEST BUDOWANIE RELACJI: Krótkie empatyczne komentarze typu 'rozumiem', 'nie dziwię się', 'to frustrujące', 'współczuję' = NIE (to zwykła empatia, nie budowanie relacji). Pojedyncze zdanie typu 'Z moją mamą jest to samo' BEZ rozwinięcia = NIE (zbyt krótkie). 'Nie' - brak rozbudowanego osobistego odniesienia agenta lub tylko krótkie empatyczne komentarze.",
-        "possibleAnswers": ["Tak", "Nie"]
+        "context": "Oceń, czy agent budował relację poprzez ROZWINIĘTĄ wymianę zdań (storytelling). Wymagane do 'Tak': Agent dzieli się WŁASNĄ, KONKRETNĄ historią lub doświadczeniem w minimum 2-3 zdaniach. Przykład TAK: 'Mój brat też pracuje w Niemczech w budowlance i wiem, że tam z płatnościami jest różnie, ostatnio miał podobną sytuację...'. Wymagane do 'Nie' (zbyt słabe próby): Pojedyncze wtrącenie: 'Też tak miałem.', 'Rozumiem, mam dzieci.', Zwykła empatia: 'To musi być trudne.', Komentarze branżowe. Zasada: Jeśli to tylko 'odbicie piłeczki' jednym zdaniem -> NIE. Jeśli to 'krótka opowieść' -> TAK.",
+        "possibleAnswers": [
+            "Tak",
+            "Nie"
+        ]
     }
 ]
