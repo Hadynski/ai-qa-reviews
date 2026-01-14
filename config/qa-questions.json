@@ -108,7 +108,7 @@
     {
         "id": "ds_czy_pozyskano_informacje_o_wymowkach",
         "question": "Czy agent pozyskał informacje o wymówkach dłużnika?",
-        "context": "Odpowiedz 'Tak' jeśli agent ZAPYTAŁ o wymówki dłużnika - niezależnie od odpowiedzi klienta. Liczy się zadanie pytania, nie uzyskanie odpowiedzi. 'Nie' - pytanie o wymówki/tłumaczenia nie padło.",
+        "context": "Sprawdź, czy agent zadał pytanie celujące w weryfikację prawdomówności dłużnika lub jego tłumaczeń. Szukaj pytań typu: 'Co on panu dokładnie mówi?', 'Jak on to tłumaczy?', 'Jakich używa wymówek?', 'Co pan słyszy, gdy dzwoni?'. - Jeśli agent zapytał TYLKO o fakty (np. 'Kiedy obiecał wpłatę?', 'Ile zalega?') -> Wybierz 'Nie'. - Jeśli agent zapytał o TREŚĆ TŁUMACZEŃ dłużnika -> Wybierz 'Tak'. Liczy się inicjatywa agenta (zadanie pytania), a nie to, czy klient znał odpowiedź.",
         "goodExamples": [
             "Jakieś wymówki stosują?",
             "Jak się tłumaczą?",
@@ -238,13 +238,13 @@
     {
         "id": "ds_umowienie_sie_na_rozmowe_z_analiza_dluznika",
         "question": "Czy agent umówił się z klientem na konkretną godzinę rozmowy z analizą dłużnika oraz poinformował, że w analizę będzie zaangażowany dział prawny lub windykatorzy?",
-        "context": "Oceń łącznie dwa warunki: (1) czy została ustalona KONKRETNA godzina rozmowy (np. '15:00', 'o dziesiątej', '11:30'). UWAGA: 'około', 'koło', 'mniej więcej', 'po południu' NIE są konkretne - wymagana jest dokładna godzina. (2) czy agent wspomniał o zaangażowaniu działu prawnego LUB windykatorów (wystarczy jedno). 'Tak' - oba warunki spełnione. 'Nie' - brak jednego lub obu. 'Częściowo' można użyć jeśli jest godzina ale brak info o dziale, lub odwrotnie.",
+        "context": "Sprawdź, czy agent umówił konkretny termin DRUGIEJ rozmowy, wyraźnie wskazując, że jej celem będzie ANALIZA, WERYFIKACJA lub RAPORT o dłużniku. - 'Zdzwonimy się jutro' (bez celu) -> Wybierz 'Nie'. - 'Zdzwonimy się, by podpisać umowę' (sprzedaż, a nie analiza) -> Wybierz 'Nie'. - 'Zdzwonimy się, przedstawię co na niego mamy/zweryfikuję go' -> Wybierz 'Tak'. Musisz usłyszeć intencję sprawdzenia dłużnika przed podjęciem współpracy.",
         "possibleAnswers": ["Tak", "Nie"]
     },
     {
         "id": "ds_zbijanie_obiekcji__minimum_dw",
         "question": "Czy agent zbijał obiekcje klienta na temat usługi/rozwiązania minimum dwukrotnie?",
-        "context": "NAJPIERW sprawdź czy klient WYPOWIEDZIAŁ PRAWDZIWE obiekcje (opór, sprzeciw). CO JEST OBIEKCJĄ: 'to za drogo', 'muszę się zastanowić', 'nie jestem pewien czy chcę', 'wolę dać mu jeszcze szansę', 'słyszałem złe opinie o was', 'nie mam czasu na dokumenty', 'porównam z innymi firmami'. CO NIE JEST OBIEKCJĄ: Proste pytania informacyjne ('a ile to kosztuje?', 'jak to działa?', 'ile trwa?') - to tylko zbieranie informacji, nie opór. Opis sytuacji dłużnika ('on nie ma firmy', 'jest w upadłości') - to fakty, nie obiekcje. Jeśli klient NIE zgłosił prawdziwych obiekcji = 'Nie dotyczy - brak obiekcji'. Jeśli były obiekcje: 'Tak' = agent zbił min. 2. 'Nie' = były obiekcje ale agent zbił mniej niż 2.",
+        "context": "ALGORYTM OCENY: KROK 1: Czy w rozmowie padły wyraźne słowa oporu ('nie chcę', 'za drogo', 'nie mam czasu', 'muszę przemyśleć')? - Pytania o cenę, ofertę lub proces TO NIE SĄ OBIEKCJE -> Wybierz 'Nie dotyczy - brak obiekcji'. - Opis trudnej sytuacji dłużnika TO NIE SĄ OBIEKCJE -> Wybierz 'Nie dotyczy - brak obiekcji'. KROK 2: Jeśli padły PRAWDZIWE obiekcje, policz, ile razy agent na nie zareagował argumentem (zbił je). - Jeśli zbił 0 lub 1 raz -> Wybierz 'Nie'. - Jeśli zbił 2 lub więcej razy -> Wybierz 'Tak'. UWAGA: Jeśli klient nie miał obiekcji, pod żadnym pozorem nie wybieraj 'Nie' ani 'Tak'.",
         "possibleAnswers": [
             "Tak",
             "Nie",

@@ -105,45 +105,60 @@ export async function analyzeCall(
 
       const agentInfo = agentName ? `Agent prowadzący rozmowę: ${agentName}.\n` : '';
 
-      const systemPrompt = `Jesteś analitykiem QA w firmie Hadyński Inkaso i oceniasz transkrypcje rozmów z call center.
-${agentInfo}Rozmowę prowadzi agent Hadyński Inkaso, którego zadaniem jest pobranie od klienta informacji o jego sytuacji oraz o jego dłużniku.
-Twoim zadaniem jest odpowiadanie na pytania wyłącznie na podstawie dostarczonej transkrypcji.
-Musisz wybrać dokładnie jedną odpowiedź z listy możliwych odpowiedzi.
-WAŻNE: Odpowiadaj wyłącznie DOKŁADNYM brzmieniem jednej z odpowiedzi z listy – nie używaj numerów ani skrótów.
-Do każdej odpowiedzi dołącz jedno zwięzłe zdanie uzasadnienia, które:
-- dosłownie cytuje kluczowy fragment transkrypcji (w cudzysłowie),
-- jasno wyjaśnia, dlaczego ten cytat spełnia kryteria wybranej odpowiedzi.
-Jeśli jest niepewność (np. niepełne informacje, sprzeczne sygnały), wybierz odpowiedź najlepiej wspartą transkrypcją i w uzasadnieniu wyraźnie zaznacz tę niepewność.
+      const systemPrompt = `Jesteś rygorystycznym analitykiem QA w firmie Hadyński Inkaso. Oceniasz transkrypcje rozmów zgodnie ze ścisłym protokołem.
+${agentInfo}
+TWOJE ZADANIE:
+Oceń zgodność rozmowy z procedurą, odpowiadając na zadane pytanie wyłącznie na podstawie transkrypcji.
 
-PROCES OCENY:
-1. Przeczytaj pytanie i kontekst oceny.
-2. Znajdź w transkrypcie najważniejsze fragmenty związane z pytaniem (cytuj je dosłownie).
-3. Porównaj te fragmenty z kryteriami dla każdej możliwej odpowiedzi (np. Tak / Nie / Nie dotyczy).
-4. Wybierz odpowiedź, która NAJLEPIEJ pasuje do znalezionych fragmentów.
-5. Uzasadnij decyzję, podając kluczowe cytaty z transkrypcji oraz krótkie, logiczne wyjaśnienie.
+INSTRUKCJA MYŚLENIA (CHAIN OF THOUGHT):
+Zanim udzielisz odpowiedzi, musisz przeprowadzić wewnętrzny proces analityczny w sekcji <thinking_process>.
+Ten proces musi zawierać:
+1. CYTATY: Wypisz wszystkie fragmenty transkrypcji, które mogą dotyczyć pytania.
+2. ANALIZĘ LOGICZNĄ:
+   - Jeśli pytanie wymaga liczenia (np. "min. 2 obiekcje"): Wypunktuj je i policz (1... 2...).
+   - Jeśli pytanie ma warunki wykluczające (np. "pytanie o cenę to nie obiekcja"): Odsiej fałszywe tropy.
+   - Jeśli pytanie dotyczy sekwencji (np. "wszystko na raz"): Sprawdź ciągłość wypowiedzi.
+3. WERDYKT: Dopasuj wynik analizy do dostępnych opcji odpowiedzi.
 
-Bądź sprawiedliwy, ale wymagający - klient płaci za wysoką jakość obsługi.`;
+FORMAT ODPOWIEDZI:
+Twoja odpowiedź końcowa musi być w formacie JSON (lub ustrukturyzowanym tekście, jeśli wolisz), zawierającym:
+- "thought_process": (krótkie podsumowanie twojej analizy),
+- "answer": (DOKŁADNE brzmienie jednej z opcji z listy),
+- "justification": (jedno zdanie z cytatem i uzasadnieniem).
+
+ZASADY KRYTYCZNE:
+- Nie zgaduj intencji – oceniaj fakty (słowa).
+- Bądź "surowym audytorem" – jeśli element jest niepełny, traktuj go jako brak.
+- Odpowiadaj wyłącznie wybierając jedną z podanych <possible_answers>.`;
 
       const goodExamplesSection = question.goodExamples?.length
         ? `\nPrzykłady PRAWIDŁOWE (spełniające kryteria):\n${question.goodExamples.map((e) => `- "${e}"`).join("\n")}\n`
         : '';
+
       const badExamplesSection = question.badExamples?.length
         ? `\nPrzykłady NIEPRAWIDŁOWE (NIE spełniające kryteriów):\n${question.badExamples.map((e) => `- "${e}"`).join("\n")}\n`
         : '';
 
-      const userPrompt = `<transcription>
+      const userPrompt = `
+<transcription>
 ${formattedTranscript}
 </transcription>
 
-<evaluation_criteria>
+<evaluation_task>
 Question: ${question.question}
-${question.context ? `Context: ${question.context}\n` : ''}${question.reference_script ? `Reference Script: ${question.reference_script}\n` : ''}${goodExamplesSection}${badExamplesSection}</evaluation_criteria>
+${question.context ? `Context/Rules: ${question.context}\n` : ''}
+${question.reference_script ? `Reference Script: ${question.reference_script}\n` : ''}
+${goodExamplesSection}
+${badExamplesSection}
+</evaluation_task>
 
 <possible_answers>
 ${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
 </possible_answers>
 
-Wybierz najlepszą odpowiedź z listy i podaj jedno zdanie uzasadnienia na podstawie transkrypcji.`;
+Wykonaj analizę krok po kroku. Najpierw przeanalizuj tekst w tagach <thinking_process>, a następnie podaj ostateczną odpowiedź w formacie:
+Answer: [Treść odpowiedzi]
+Justification: [Uzasadnienie]`;
 
       const modelName = "gemini-3-flash-preview";
       const generation = trace?.generation({
@@ -194,11 +209,11 @@ Wybierz najlepszą odpowiedź z listy i podaj jedno zdanie uzasadnienia na podst
               throw new Error("Content blocked by safety filters (PROHIBITED_CONTENT)");
             }
             const isOverloaded = errorString.includes("overloaded") ||
-                                 errorString.includes("503") ||
-                                 errorString.includes("UNAVAILABLE");
+              errorString.includes("503") ||
+              errorString.includes("UNAVAILABLE");
             const isRateLimited = errorString.includes("429") ||
-                                  errorString.includes("RESOURCE_EXHAUSTED") ||
-                                  errorString.includes("quota");
+              errorString.includes("RESOURCE_EXHAUSTED") ||
+              errorString.includes("quota");
             const isRetryable = isOverloaded || isRateLimited;
 
             if (isRetryable && attempt < maxRetries) {
