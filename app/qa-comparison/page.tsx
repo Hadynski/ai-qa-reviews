@@ -115,49 +115,13 @@ export default function QaComparisonPage() {
   const upsertReviews = useMutation(api.qaReviews.upsertReviews);
   const updateReviewStatus = useMutation(api.qaReviews.updateStatus);
   const saveClientReviewMutation = useMutation(api.transcriptions.saveClientReview);
+  const updateQaReviewAnswerMutation = useMutation(api.qaReviews.updateQaReviewAnswer);
 
-  // Load reviews from DB on mount
+  // Load reviews from DB and sync state
   useEffect(() => {
-    if (qaReviewsFromDB && qaReviewsFromDB.length > 0 && reviews.length === 0) {
-      const reviewsWithStatus: ReviewWithStatus[] = qaReviewsFromDB.map((review) => {
-        const transcription = transcriptionsFromDB?.find(
-          (t) => t.callId === review.callId
-        );
-        const humanReview = {
-          reviewId: review.reviewId,
-          activityName: review.activityName || "",
-          qareviewAnswers: review.qareviewAnswers,
-          reviewedAt: review.edited || review.created,
-          reviewedBy: review.reviewedBy || undefined,
-          fetchedAt: Date.now(),
-        };
-        const { metrics } = calculateComparison(transcription?.qaAnalysis, humanReview);
-        return {
-          reviewId: review.reviewId,
-          activityName: review.activityName,
-          callId: review.callId,
-          qaformName: review.qaformName,
-          created: review.created,
-          edited: review.edited,
-          reviewedBy: review.reviewedBy,
-          reviewedOperator: review.reviewedOperator || null,
-          qareviewAnswers: review.qareviewAnswers,
-          processingStatus: (review.processingStatus as ProcessingStatus) ||
-            (transcription?.qaAnalysis ? "completed" : "idle"),
-          hasTranscription: !!transcription,
-          hasAiAnalysis: !!transcription?.qaAnalysis,
-          matchPercentage: transcription?.qaAnalysis ? metrics.agreementPercentage : undefined,
-        };
-      });
-      setReviews(reviewsWithStatus);
-    }
-  }, [qaReviewsFromDB, transcriptionsFromDB, reviews.length]);
-
-  // Update reviews status when transcriptions change
-  useEffect(() => {
-    if (transcriptionsFromDB !== undefined && reviews.length > 0) {
-      setReviews((prev) =>
-        prev.map((review) => {
+    if (qaReviewsFromDB && qaReviewsFromDB.length > 0) {
+      setReviews((prevReviews) => {
+        const reviewsWithStatus: ReviewWithStatus[] = qaReviewsFromDB.map((review) => {
           const transcription = transcriptionsFromDB?.find(
             (t) => t.callId === review.callId
           );
@@ -170,22 +134,59 @@ export default function QaComparisonPage() {
             fetchedAt: Date.now(),
           };
           const { metrics } = calculateComparison(transcription?.qaAnalysis, humanReview);
+          
+          const existingReview = prevReviews.find(r => r.reviewId === review.reviewId);
+          let status: ProcessingStatus = (review.processingStatus as ProcessingStatus) ||
+            (transcription?.qaAnalysis ? "completed" : "idle");
+            
+          // Preserve local processing state if DB hasn't caught up
+          if (existingReview?.processingStatus === "processing" && status !== "completed") {
+             status = "processing";
+          }
+          if (existingReview?.processingStatus === "error") {
+             status = "error";
+          }
+
           return {
-            ...review,
+            reviewId: review.reviewId,
+            activityName: review.activityName,
+            callId: review.callId,
+            qaformName: review.qaformName,
+            created: review.created,
+            edited: review.edited,
+            reviewedBy: review.reviewedBy,
+            reviewedOperator: review.reviewedOperator || null,
+            qareviewAnswers: review.qareviewAnswers,
+            processingStatus: status,
             hasTranscription: !!transcription,
             hasAiAnalysis: !!transcription?.qaAnalysis,
-            processingStatus:
-              review.processingStatus === "processing"
-                ? review.processingStatus
-                : transcription?.qaAnalysis
-                  ? "completed"
-                  : review.processingStatus,
             matchPercentage: transcription?.qaAnalysis ? metrics.agreementPercentage : undefined,
+            processingError: existingReview?.processingError,
           };
-        })
-      );
+        });
+        return reviewsWithStatus;
+      });
     }
-  }, [transcriptionsFromDB]);
+  }, [qaReviewsFromDB, transcriptionsFromDB]);
+
+  // Update selectedReview when reviews change
+  useEffect(() => {
+      if (selectedReview && reviews.length > 0) {
+          const updated = reviews.find(r => r.reviewId === selectedReview.reviewId);
+          if (updated && JSON.stringify(updated.qareviewAnswers) !== JSON.stringify(selectedReview.qareviewAnswers)) {
+              setSelectedReview(updated);
+          }
+      }
+  }, [reviews, selectedReview]);
+
+  const handleUpdateHumanReviewAnswer = async (questionKey: string, answer: string) => {
+    if (!selectedReview) return;
+    await updateQaReviewAnswerMutation({
+      reviewId: selectedReview.reviewId,
+      questionKey,
+      answer,
+    });
+  };
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -928,6 +929,7 @@ export default function QaComparisonPage() {
                     utterances={transcription?.utterances}
                     clientReview={transcription?.clientReview}
                     onSaveClientReview={handleSaveClientReview}
+                    onUpdateHumanReviewAnswer={handleUpdateHumanReviewAnswer}
                   />
                 );
               })()}

@@ -120,3 +120,32 @@ export const updateCallId = mutation({
     return review._id;
   },
 });
+
+export const updateQaReviewAnswer = mutation({
+  args: {
+    reviewId: v.string(),
+    questionKey: v.string(),
+    answer: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const review = await ctx.db
+      .query("qaReviews")
+      .withIndex("by_review_id", (q) => q.eq("reviewId", args.reviewId))
+      .first();
+
+    if (!review) {
+      throw new Error(`QA Review not found: ${args.reviewId}`);
+    }
+
+    const currentAnswers = review.qareviewAnswers || {};
+    const newAnswers = {
+      ...currentAnswers,
+      [args.questionKey]: [args.answer],
+    };
+
+    await ctx.db.patch(review._id, {
+      qareviewAnswers: newAnswers,
+      fetchedAt: Date.now(), // Update fetchedAt to trigger reactivity if needed
+    });
+  },
+});

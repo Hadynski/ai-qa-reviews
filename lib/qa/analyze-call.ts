@@ -96,11 +96,8 @@ export async function analyzeCall(
     console.log(`Analyzing ${questions.length} QA questions...`);
 
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-    const results: QaResult[] = [];
 
-    for (let i = 0; i < questions.length; i++) {
-      const question = questions[i];
-
+    const results = await Promise.all(questions.map(async (question, i) => {
       console.log(`Processing question ${i + 1}/${questions.length}: ${question.id}`);
 
       const agentInfo = agentName ? `Agent prowadzący rozmowę: ${agentName}.\n` : '';
@@ -246,12 +243,12 @@ Justification: [Uzasadnienie]`;
         console.log(`A: ${object.answer}`);
         console.log(`Justification: ${object.justification}`);
 
-        results.push({
+        return {
           questionId: question.id,
           question: question.question,
           answer: object.answer,
           justification: object.justification,
-        });
+        };
       } catch (error) {
         console.error(`Error analyzing question ${question.id}:`, error);
 
@@ -259,14 +256,14 @@ Justification: [Uzasadnienie]`;
           output: { error: error instanceof Error ? error.message : String(error) },
         });
 
-        results.push({
+        return {
           questionId: question.id,
           question: question.question,
           answer: "Error",
           justification: `Failed to analyze: ${error instanceof Error ? error.message : String(error)}`,
-        });
+        };
       }
-    }
+    }));
 
     await convex.mutation(api.transcriptions.saveQaAnalysis, {
       callId,

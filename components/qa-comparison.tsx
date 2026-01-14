@@ -14,6 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Utterance {
   speaker: number;
@@ -30,6 +37,7 @@ interface QaComparisonProps {
   utterances?: Utterance[];
   clientReview?: ClientReview;
   onSaveClientReview?: (questionId: string, comment: string) => Promise<void>;
+  onUpdateHumanReviewAnswer?: (questionKey: string, answer: string) => Promise<void>;
 }
 
 export function calculateComparison(
@@ -167,13 +175,14 @@ function mergeConsecutiveUtterances(utterances: Utterance[]): Utterance[] {
   return merged;
 }
 
-export function QaComparison({ aiAnalysis, humanReview, activityName, transcriptionText, utterances, clientReview, onSaveClientReview }: QaComparisonProps) {
+export function QaComparison({ aiAnalysis, humanReview, activityName, transcriptionText, utterances, clientReview, onSaveClientReview, onUpdateHumanReviewAnswer }: QaComparisonProps) {
   const { items, metrics } = calculateComparison(aiAnalysis, humanReview);
   const [hideMatches, setHideMatches] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [transcriptionModalOpen, setTranscriptionModalOpen] = useState(false);
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, string>>({});
   const [savingReviews, setSavingReviews] = useState<Set<string>>(new Set());
+  const [updatingAnswers, setUpdatingAnswers] = useState<Set<string>>(new Set());
 
   const getExistingReview = (questionId: string) => {
     return clientReview?.reviews.find((r) => r.questionId === questionId);
@@ -181,6 +190,22 @@ export function QaComparison({ aiAnalysis, humanReview, activityName, transcript
 
   const handleReviewChange = (questionId: string, value: string) => {
     setReviewDrafts((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const handleUpdateAnswer = async (questionKey: string, answer: string) => {
+    if (!onUpdateHumanReviewAnswer) return;
+    setUpdatingAnswers((prev) => new Set(prev).add(questionKey));
+    try {
+        await onUpdateHumanReviewAnswer(questionKey, answer);
+    } catch (error) {
+        console.error("Failed to update answer:", error);
+    } finally {
+        setUpdatingAnswers((prev) => {
+            const next = new Set(prev);
+            next.delete(questionKey);
+            return next;
+        });
+    }
   };
 
   const handleSaveReview = async (questionId: string) => {
@@ -398,9 +423,29 @@ export function QaComparison({ aiAnalysis, humanReview, activityName, transcript
                     </div>
                     {item.humanAnswers && item.humanAnswers.length > 0 ? (
                       <div className="space-y-2">
-                        {item.humanAnswers.map((ans, i) => (
-                          <p key={i} className="text-sm font-semibold text-gray-900">{ans}</p>
-                        ))}
+                        {onUpdateHumanReviewAnswer && item.humanQuestionKey ? (
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Select
+                                    value={item.humanAnswers[0]}
+                                    onValueChange={(val) => handleUpdateAnswer(item.humanQuestionKey!, val)}
+                                    disabled={updatingAnswers.has(item.humanQuestionKey!)}
+                                >
+                                    <SelectTrigger className="w-full h-8 bg-white border-gray-200">
+                                        <SelectValue placeholder="Select answer" />
+                                        {updatingAnswers.has(item.humanQuestionKey!) && <Loader2 className="h-3 w-3 animate-spin ml-2" />}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Tak">Tak</SelectItem>
+                                        <SelectItem value="Nie">Nie</SelectItem>
+                                        <SelectItem value="Nie dotyczy">Nie dotyczy</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ) : (
+                             item.humanAnswers.map((ans, i) => (
+                                <p key={i} className="text-sm font-semibold text-gray-900">{ans}</p>
+                             ))
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-400 italic">No human review available</p>
