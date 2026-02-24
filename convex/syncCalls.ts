@@ -1,6 +1,7 @@
 import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 
 interface DaktelaStatus {
   name: string;
@@ -59,8 +60,8 @@ interface MappedCallRecord {
   direction: string | null;
   answered: boolean | null;
   clid: string | null;
-  agentName: string | null;
   agentUsername: string | null;
+  agentDisplayName: string | null;
   agentExtension: string | null;
   queueId: number | null;
   queueName: string | null;
@@ -68,6 +69,7 @@ interface MappedCallRecord {
   contactFirstname: string | null;
   contactLastname: string | null;
   accountName: string | null;
+  statusNames: string[];
 }
 
 async function getDaktelaToken(): Promise<string> {
@@ -109,8 +111,8 @@ function mapActivityToCallRecord(activity: DaktelaActivity): MappedCallRecord {
     direction: callItem?.direction ?? null,
     answered: callItem?.answered ?? null,
     clid: callItem?.clid ?? null,
-    agentName: callItem?.id_agent?.title ?? null,
     agentUsername: callItem?.id_agent?.name ?? null,
+    agentDisplayName: callItem?.id_agent?.title ?? null,
     agentExtension: callItem?.id_agent?.extension ?? null,
     queueId: callItem?.id_queue?.name ?? null,
     queueName: callItem?.id_queue?.title ?? null,
@@ -118,6 +120,7 @@ function mapActivityToCallRecord(activity: DaktelaActivity): MappedCallRecord {
     contactFirstname: activity.contact?.firstname ?? null,
     contactLastname: activity.contact?.lastname ?? null,
     accountName: activity.contact?.account?.title ?? null,
+    statusNames: activity.statuses.map((s) => s.name),
   };
 }
 
@@ -136,10 +139,51 @@ function buildActivitiesFilterParams(statusIds: string[]): URLSearchParams {
 
   params.append("sort[0][field]", "time");
   params.append("sort[0][dir]", "desc");
-  params.append("take", "100");
+  params.append("take", "30");
 
   return params;
 }
+
+export const syncStatuses = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const daktelaUrl = process.env.DAKTELA_URL?.replace(/\/+$/, "");
+    if (!daktelaUrl) {
+      throw new Error("DAKTELA_URL not configured");
+    }
+
+    const token = await getDaktelaToken();
+    const response = await fetch(`${daktelaUrl}/api/v6/statuses.json?take=500`, {
+      headers: {
+        "X-AUTH-TOKEN": token,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(
+        `Daktela statuses API error: ${response.statusText} - ${errorBody}`
+      );
+    }
+
+    const data = await response.json();
+    const statuses: Array<{ name: string; title: string }> =
+      data.result?.data ?? [];
+
+    let upserted = 0;
+    for (const status of statuses) {
+      await ctx.runMutation(internal.daktelaStatuses.upsertInternal, {
+        statusId: status.name,
+        title: status.title,
+      });
+      upserted++;
+    }
+
+    console.log(`Synced ${upserted} statuses from Daktela`);
+    return { upserted };
+  },
+});
 
 export const syncFromDaktela = internalAction({
   args: {},
@@ -177,7 +221,9 @@ export const syncFromDaktela = internalAction({
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Daktela API error: ${response.statusText} - ${errorBody}`);
+      throw new Error(
+        `Daktela API error: ${response.statusText} - ${errorBody}`
+      );
     }
 
     const data = await response.json();
@@ -185,9 +231,12 @@ export const syncFromDaktela = internalAction({
 
     const mappedRecordings = activities.map(mapActivityToCallRecord);
 
-    await ctx.runMutation(internal.syncCalls.saveCalls, {
-      calls: mappedRecordings,
-    });
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < mappedRecordings.length; i += BATCH_SIZE) {
+      await ctx.runMutation(internal.syncCalls.saveCalls, {
+        calls: mappedRecordings.slice(i, i + BATCH_SIZE),
+      });
+    }
 
     console.log(`Synced ${mappedRecordings.length} calls from Daktela`);
 
@@ -210,8 +259,8 @@ export const saveCalls = internalMutation({
         direction: v.union(v.string(), v.null()),
         answered: v.union(v.boolean(), v.null()),
         clid: v.union(v.string(), v.null()),
-        agentName: v.union(v.string(), v.null()),
         agentUsername: v.union(v.string(), v.null()),
+        agentDisplayName: v.union(v.string(), v.null()),
         agentExtension: v.union(v.string(), v.null()),
         queueId: v.union(v.number(), v.null()),
         queueName: v.union(v.string(), v.null()),
@@ -219,22 +268,103 @@ export const saveCalls = internalMutation({
         contactFirstname: v.union(v.string(), v.null()),
         contactLastname: v.union(v.string(), v.null()),
         accountName: v.union(v.string(), v.null()),
+        statusNames: v.array(v.string()),
       })
     ),
   },
   handler: async (ctx, args) => {
+    const questionGroups = await ctx.db
+      .query("questionGroups")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
+    questionGroups.sort((a, b) => a.name.localeCompare(b.name));
+
     for (const call of args.calls) {
       const existing = await ctx.db
         .query("calls")
         .withIndex("by_call_id", (q) => q.eq("callId", call.callId))
         .first();
 
-      if (!existing) {
+      if (existing) continue;
+
+      let agentId: Id<"agents"> | undefined;
+      if (call.agentUsername) {
+        const existingAgent = await ctx.db
+          .query("agents")
+          .withIndex("by_username", (q) => q.eq("username", call.agentUsername!))
+          .first();
+
+        if (existingAgent) {
+          await ctx.db.patch(existingAgent._id, {
+            displayName: call.agentDisplayName ?? call.agentUsername!,
+            extension: call.agentExtension ?? null,
+          });
+          agentId = existingAgent._id;
+        } else {
+          agentId = await ctx.db.insert("agents", {
+            username: call.agentUsername,
+            displayName: call.agentDisplayName ?? call.agentUsername,
+            extension: call.agentExtension ?? null,
+            createdAt: Date.now(),
+          });
+        }
+      }
+
+      const shouldSkip =
+        call.answered === false || (call.duration !== null && call.duration < 30);
+
+      if (shouldSkip) {
         await ctx.db.insert("calls", {
-          ...call,
+          callId: call.callId,
+          activityName: call.activityName,
+          callTime: call.callTime,
+          duration: call.duration,
+          direction: call.direction,
+          answered: call.answered,
+          clid: call.clid,
+          agentId,
+          queueId: call.queueId,
+          queueName: call.queueName,
+          contactName: call.contactName,
+          contactFirstname: call.contactFirstname,
+          contactLastname: call.contactLastname,
+          accountName: call.accountName,
+          processingStatus: "skipped",
           createdAt: Date.now(),
         });
+        continue;
       }
+
+      let matchedGroupId: Id<"questionGroups"> | undefined;
+      for (const group of questionGroups) {
+        const hasMatchingStatus = call.statusNames.some((sn) =>
+          group.statusIds.includes(sn)
+        );
+        if (hasMatchingStatus) {
+          matchedGroupId = group._id;
+          break;
+        }
+      }
+
+      await ctx.db.insert("calls", {
+        callId: call.callId,
+        activityName: call.activityName,
+        callTime: call.callTime,
+        duration: call.duration,
+        direction: call.direction,
+        answered: call.answered,
+        clid: call.clid,
+        agentId,
+        queueId: call.queueId,
+        queueName: call.queueName,
+        contactName: call.contactName,
+        contactFirstname: call.contactFirstname,
+        contactLastname: call.contactLastname,
+        accountName: call.accountName,
+        processingStatus: matchedGroupId ? "synced" : "skipped",
+        questionGroupId: matchedGroupId,
+        createdAt: Date.now(),
+      });
     }
   },
 });

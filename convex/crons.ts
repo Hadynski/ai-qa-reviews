@@ -9,4 +9,10 @@ crons.interval(
   internal.syncCalls.syncFromDaktela
 );
 
+crons.interval(
+  "process call pipeline",
+  { minutes: 2 },
+  internal.pipeline.processPipeline
+);
+
 export default crons;
