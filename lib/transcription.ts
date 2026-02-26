@@ -1,49 +1,5 @@
+import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import { createClient } from "@deepgram/sdk";
-import { readFileSync, existsSync } from "fs";
-import { join } from "path";
-
-interface DeepgramKeytermsConfig {
-  companyName?: string;
-  additionalTerms?: string[];
-}
-
-function buildKeyterms(agentName?: string): string[] {
-  const configPath = join(process.cwd(), "config/deepgram-keywords.json");
-  const keyterms: string[] = [];
-
-  if (existsSync(configPath)) {
-    try {
-      const config: DeepgramKeytermsConfig = JSON.parse(
-        readFileSync(configPath, "utf-8")
-      );
-
-      if (config.companyName) {
-        keyterms.push(config.companyName);
-      }
-
-      if (config.additionalTerms) {
-        keyterms.push(...config.additionalTerms);
-      }
-    } catch {
-      // Config read failed, continue without keyterms
-    }
-  }
-
-  if (agentName) {
-    keyterms.push(agentName);
-  }
-
-  return keyterms;
-}
-
-export interface TranscriptionWord {
-  word: string;
-  start: number;
-  end: number;
-  confidence: number;
-  speaker: number;
-  speaker_confidence?: number;
-}
 
 export interface Utterance {
   speaker: number;
@@ -55,7 +11,6 @@ export interface Utterance {
 export interface TranscriptionResult {
   text: string;
   language_code: string;
-  words: TranscriptionWord[];
   utterances: Utterance[];
 }
 
@@ -87,10 +42,129 @@ export function formatUtterancesAsDialog(utterances: Utterance[]): string {
     .join("\n\n");
 }
 
-export async function transcribeWithDeepgram(
+interface ElevenLabsWord {
+  text: string;
+  start?: number;
+  end?: number;
+  speakerId?: string;
+}
+
+function generateUtterancesFromElevenLabsWords(
+  words: ElevenLabsWord[]
+): Utterance[] {
+  if (!words?.length) return [];
+
+  const speakerToNumber = (speakerId?: string): number => {
+    if (!speakerId) return 0;
+    const num = parseInt(speakerId, 10);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const utterances: Utterance[] = [];
+  let current = {
+    speaker: speakerToNumber(words[0].speakerId),
+    transcript: words[0].text,
+    start: words[0].start ?? 0,
+    end: words[0].end ?? 0,
+  };
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const speaker = speakerToNumber(word.speakerId);
+    if (speaker === current.speaker) {
+      current.transcript += " " + word.text;
+      current.end = word.end ?? current.end;
+    } else {
+      utterances.push(current);
+      current = {
+        speaker,
+        transcript: word.text,
+        start: word.start ?? 0,
+        end: word.end ?? 0,
+      };
+    }
+  }
+  utterances.push(current);
+
+  return utterances;
+}
+
+async function transcribeWithElevenLabs(
   audioBuffer: Buffer,
   language: string = "pl",
-  agentName?: string
+  keyterms?: string[]
+): Promise<TranscriptionResult> {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error("ELEVENLABS_API_KEY not configured");
+  }
+
+  const client = new ElevenLabsClient({ apiKey });
+
+  console.log(
+    `[ElevenLabs] Starting transcription, buffer size: ${audioBuffer.length} bytes`
+  );
+  const startTime = Date.now();
+
+  const audioBlob = new Blob([new Uint8Array(audioBuffer)]);
+
+  const result = await client.speechToText.convert({
+    file: audioBlob,
+    modelId: "scribe_v2",
+    languageCode: language,
+    diarize: true,
+    timestampsGranularity: "word",
+    ...(keyterms?.length ? { keyterms } : {}),
+  });
+
+  const duration = Date.now() - startTime;
+  console.log(`[ElevenLabs] Completed in ${duration}ms`);
+
+  const responseData = result as unknown as {
+    text: string;
+    languageCode?: string;
+    words?: ElevenLabsWord[];
+  };
+
+  const words: ElevenLabsWord[] = responseData.words ?? [];
+  const utterances = generateUtterancesFromElevenLabsWords(words);
+
+  return {
+    text: responseData.text,
+    language_code: responseData.languageCode ?? language,
+    utterances,
+  };
+}
+
+interface DeepgramKeytermsConfig {
+  companyName?: string;
+  additionalTerms?: string[];
+}
+
+function buildKeyterms(
+  agentName?: string,
+  keytermsConfig?: DeepgramKeytermsConfig
+): string[] {
+  const keyterms: string[] = [];
+
+  if (keytermsConfig?.companyName) {
+    keyterms.push(keytermsConfig.companyName);
+  }
+  if (keytermsConfig?.additionalTerms) {
+    keyterms.push(...keytermsConfig.additionalTerms);
+  }
+  if (agentName) {
+    keyterms.push(agentName);
+  }
+
+  return keyterms;
+}
+
+async function transcribeWithDeepgram(
+  audioBuffer: Buffer,
+  language: string = "pl",
+  agentName?: string,
+  keytermsConfig?: DeepgramKeytermsConfig
 ): Promise<TranscriptionResult> {
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) {
@@ -98,9 +172,11 @@ export async function transcribeWithDeepgram(
   }
 
   const deepgram = createClient(apiKey);
-  const keyterms = buildKeyterms(agentName);
+  const keyterms = buildKeyterms(agentName, keytermsConfig);
 
-  console.log(`[Deepgram] Starting transcription, buffer size: ${audioBuffer.length} bytes, language: ${language}`);
+  console.log(
+    `[Deepgram] Starting transcription, buffer size: ${audioBuffer.length} bytes`
+  );
   const startTime = Date.now();
 
   const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
@@ -119,11 +195,11 @@ export async function transcribeWithDeepgram(
   const duration = Date.now() - startTime;
 
   if (error) {
-    console.error(`[Deepgram] Failed after ${duration}ms. Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    console.error(`[Deepgram] Failed after ${duration}ms:`, error.message);
     throw new Error(`Deepgram transcription failed: ${error.message}`);
   }
 
-  console.log(`[Deepgram] Completed successfully in ${duration}ms`);
+  console.log(`[Deepgram] Completed in ${duration}ms`);
 
   const channel = result.results.channels[0];
   const alternative = channel.alternatives[0];
@@ -131,19 +207,37 @@ export async function transcribeWithDeepgram(
   return {
     text: alternative.transcript,
     language_code: language,
-    words: alternative.words.map((w) => ({
-      word: w.word,
-      start: w.start,
-      end: w.end,
-      confidence: w.confidence,
-      speaker: w.speaker ?? 0,
-      speaker_confidence: w.speaker_confidence,
-    })),
-    utterances: result.results.utterances?.map((u) => ({
-      speaker: u.speaker ?? 0,
-      transcript: u.transcript,
-      start: u.start,
-      end: u.end,
-    })) ?? [],
+    utterances:
+      result.results.utterances?.map((u) => ({
+        speaker: u.speaker ?? 0,
+        transcript: u.transcript,
+        start: u.start,
+        end: u.end,
+      })) ?? [],
   };
+}
+
+export async function transcribe(
+  audioBuffer: Buffer,
+  language: string = "pl",
+  agentName?: string,
+  keytermsConfig?: DeepgramKeytermsConfig,
+  elevenLabsKeyterms?: string[]
+): Promise<TranscriptionResult> {
+  const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
+  const deepgramKey = process.env.DEEPGRAM_API_KEY;
+
+  if (elevenLabsKey) {
+    console.log("[Transcription] Using ElevenLabs Scribe v2");
+    return transcribeWithElevenLabs(audioBuffer, language, elevenLabsKeyterms);
+  }
+
+  if (deepgramKey) {
+    console.log("[Transcription] Falling back to Deepgram");
+    return transcribeWithDeepgram(audioBuffer, language, agentName, keytermsConfig);
+  }
+
+  throw new Error(
+    "No transcription API configured. Set ELEVENLABS_API_KEY or DEEPGRAM_API_KEY"
+  );
 }

@@ -8,10 +8,8 @@ export async function register() {
       baseUrl: process.env.LANGFUSE_BASE_URL,
     });
 
-    // Verify connection
     console.log("Langfuse initialized");
 
-    // Store the instance globally for use in API routes
-    (global as any).langfuse = langfuse;
+    (global as Record<string, unknown>).langfuse = langfuse;
   }
 }

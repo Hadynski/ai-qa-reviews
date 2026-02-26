@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const token = await getDaktelaToken();
-    const daktelaUrl = process.env.DAKTELA_URL?.replace(/\/+$/, '');
+    const daktelaUrl = process.env.DAKTELA_URL?.replace(/\/+$/, "");
 
     if (!daktelaUrl) {
       throw new Error("DAKTELA_URL not configured");
@@ -25,9 +25,7 @@ export async function GET(
     const url = `${daktelaUrl}/file/recording/${activityName}?accessToken=${token}`;
 
     const response = await fetch(url, {
-      headers: {
-        "Accept": "audio/*",
-      },
+      headers: { Accept: "audio/*" },
     });
 
     if (!response.ok) {
@@ -47,7 +45,6 @@ export async function GET(
         const start = parseInt(match[1], 10);
         const end = match[2] ? parseInt(match[2], 10) : totalSize - 1;
         const chunkSize = end - start + 1;
-
         const chunk = audioData.slice(start, end + 1);
 
         return new NextResponse(chunk, {

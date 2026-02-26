@@ -1,31 +1,39 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAuth, requireRole } from "./authHelpers";
+import { revertStatsForCall } from "./stats";
 
 export const list = query({
   args: {
-    page: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const page = args.page ?? 0;
-    const limit = args.limit ?? 20;
-    const offset = page * limit;
+    await requireAuth(ctx);
+    const limit = args.limit ?? 50;
 
-    const allCalls = await ctx.db
+    const calls = await ctx.db
       .query("calls")
       .withIndex("by_call_time")
       .order("desc")
-      .collect();
+      .take(limit);
 
-    const total = allCalls.length;
-    const calls = allCalls.slice(offset, offset + limit);
+    const callsWithAgent = await Promise.all(
+      calls.map(async (call) => {
+        const agent = call.agentId ? await ctx.db.get(call.agentId) : null;
+        const group = call.questionGroupId
+          ? await ctx.db.get(call.questionGroupId)
+          : null;
+        return {
+          ...call,
+          agentName: agent?.displayName ?? null,
+          questionGroupName: group?.displayName ?? null,
+        };
+      })
+    );
 
     return {
-      calls,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      calls: callsWithAgent,
+      total: calls.length,
     };
   },
 });
@@ -33,11 +41,63 @@ export const list = query({
 export const get = query({
   args: { id: v.id("calls") },
   handler: async (ctx, args) => {
+    await requireAuth(ctx);
     return await ctx.db.get(args.id);
   },
 });
 
+export const getWithAgent = query({
+  args: { id: v.id("calls") },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx);
+    const call = await ctx.db.get(args.id);
+    if (!call) return null;
+    const agent = call.agentId ? await ctx.db.get(call.agentId) : null;
+    return { ...call, agentName: agent?.displayName ?? null };
+  },
+});
+
+export const listByAgent = query({
+  args: {
+    agentId: v.id("agents"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx);
+    const limit = args.limit ?? 50;
+
+    const calls = await ctx.db
+      .query("calls")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .order("desc")
+      .take(limit);
+
+    return Promise.all(
+      calls.map(async (call) => {
+        const group = call.questionGroupId
+          ? await ctx.db.get(call.questionGroupId)
+          : null;
+        return {
+          ...call,
+          questionGroupName: group?.displayName ?? null,
+        };
+      })
+    );
+  },
+});
+
 export const getByCallId = query({
+  args: { callId: v.string() },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx);
+    return await ctx.db
+      .query("calls")
+      .withIndex("by_call_id", (q) => q.eq("callId", args.callId))
+      .first();
+  },
+});
+
+export const getByCallIdInternal = internalQuery({
   args: { callId: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -47,137 +107,117 @@ export const getByCallId = query({
   },
 });
 
-export const upsertCall = mutation({
+export const listByStatus = query({
   args: {
-    callId: v.string(),
-    activityName: v.string(),
-    callTime: v.string(),
-    duration: v.union(v.number(), v.null()),
-    direction: v.union(v.string(), v.null()),
-    answered: v.union(v.boolean(), v.null()),
-    clid: v.union(v.string(), v.null()),
-    agentName: v.union(v.string(), v.null()),
-    agentUsername: v.union(v.string(), v.null()),
-    agentExtension: v.union(v.string(), v.null()),
-    queueId: v.union(v.number(), v.null()),
-    queueName: v.union(v.string(), v.null()),
-    contactName: v.union(v.string(), v.null()),
-    contactFirstname: v.union(v.string(), v.null()),
-    contactLastname: v.union(v.string(), v.null()),
-    accountName: v.union(v.string(), v.null()),
+    processingStatus: v.string(),
+    limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    await requireAuth(ctx);
+    const limit = args.limit ?? 20;
+    const calls = await ctx.db
       .query("calls")
-      .withIndex("by_call_id", (q) => q.eq("callId", args.callId))
-      .first();
+      .withIndex("by_processing_status", (q) =>
+        q.eq("processingStatus", args.processingStatus)
+      )
+      .take(limit);
 
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        activityName: args.activityName,
-        callTime: args.callTime,
-        duration: args.duration ?? null,
-        direction: args.direction ?? null,
-        answered: args.answered ?? null,
-        clid: args.clid ?? null,
-        agentName: args.agentName ?? null,
-        agentUsername: args.agentUsername ?? null,
-        agentExtension: args.agentExtension ?? null,
-        queueId: args.queueId ?? null,
-        queueName: args.queueName ?? null,
-        contactName: args.contactName ?? null,
-        contactFirstname: args.contactFirstname ?? null,
-        contactLastname: args.contactLastname ?? null,
-        accountName: args.accountName ?? null,
-      });
-      return existing._id;
+    return Promise.all(
+      calls.map(async (call) => {
+        const agent = call.agentId ? await ctx.db.get(call.agentId) : null;
+        return { ...call, agentName: agent?.displayName ?? null };
+      })
+    );
+  },
+});
+
+export const listByStatusInternal = internalQuery({
+  args: {
+    processingStatus: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 10;
+    return await ctx.db
+      .query("calls")
+      .withIndex("by_processing_status", (q) =>
+        q.eq("processingStatus", args.processingStatus)
+      )
+      .take(limit);
+  },
+});
+
+export const updateProcessingStatus = internalMutation({
+  args: {
+    callId: v.id("calls"),
+    processingStatus: v.string(),
+    processingError: v.optional(v.string()),
+    questionGroupId: v.optional(v.id("questionGroups")),
+  },
+  handler: async (ctx, args) => {
+    const patch: Record<string, unknown> = {
+      processingStatus: args.processingStatus,
+      lastProcessedAt: Date.now(),
+    };
+
+    if (args.processingError !== undefined) {
+      patch.processingError = args.processingError;
+    }
+    if (args.questionGroupId !== undefined) {
+      patch.questionGroupId = args.questionGroupId;
     }
 
-    return await ctx.db.insert("calls", {
-      callId: args.callId,
-      activityName: args.activityName,
-      callTime: args.callTime,
-      duration: args.duration ?? null,
-      direction: args.direction ?? null,
-      answered: args.answered ?? null,
-      clid: args.clid ?? null,
-      agentName: args.agentName ?? null,
-      agentUsername: args.agentUsername ?? null,
-      agentExtension: args.agentExtension ?? null,
-      queueId: args.queueId ?? null,
-      queueName: args.queueName ?? null,
-      contactName: args.contactName ?? null,
-      contactFirstname: args.contactFirstname ?? null,
-      contactLastname: args.contactLastname ?? null,
-      accountName: args.accountName ?? null,
-      createdAt: Date.now(),
+    await ctx.db.patch(args.callId, patch);
+  },
+});
+
+export const retryFailedCall = mutation({
+  args: { callId: v.id("calls") },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "reviewer");
+    const call = await ctx.db.get(args.callId);
+    if (!call) {
+      throw new Error("Call not found");
+    }
+    if (call.processingStatus !== "failed") {
+      throw new Error("Only failed calls can be retried");
+    }
+
+    const retryCount = (call.retryCount ?? 0) + 1;
+    await ctx.db.patch(args.callId, {
+      processingStatus: "synced",
+      processingError: undefined,
+      retryCount,
+      lastProcessedAt: Date.now(),
     });
   },
 });
 
-export const syncNewCalls = mutation({
-  args: {
-    calls: v.array(
-      v.object({
-        callId: v.string(),
-        activityName: v.string(),
-        callTime: v.string(),
-        duration: v.optional(v.union(v.number(), v.null())),
-        direction: v.optional(v.union(v.string(), v.null())),
-        answered: v.optional(v.union(v.boolean(), v.null())),
-        clid: v.optional(v.union(v.string(), v.null())),
-        agentName: v.optional(v.union(v.string(), v.null())),
-        agentUsername: v.optional(v.union(v.string(), v.null())),
-        agentExtension: v.optional(v.union(v.string(), v.null())),
-        queueId: v.optional(v.union(v.number(), v.null())),
-        queueName: v.optional(v.union(v.string(), v.null())),
-        contactName: v.optional(v.union(v.string(), v.null())),
-        contactFirstname: v.optional(v.union(v.string(), v.null())),
-        contactLastname: v.optional(v.union(v.string(), v.null())),
-        accountName: v.optional(v.union(v.string(), v.null())),
-      })
-    ),
-  },
+export const reprocessCall = mutation({
+  args: { callId: v.id("calls") },
   handler: async (ctx, args) => {
-    const results = [];
-    for (const call of args.calls) {
-      const existing = await ctx.db
-        .query("calls")
-        .withIndex("by_call_id", (q) => q.eq("callId", call.callId))
-        .first();
-
-      if (!existing) {
-        const id = await ctx.db.insert("calls", {
-          callId: call.callId,
-          activityName: call.activityName,
-          callTime: call.callTime,
-          duration: call.duration ?? null,
-          direction: call.direction ?? null,
-          answered: call.answered ?? null,
-          clid: call.clid ?? null,
-          agentName: call.agentName ?? null,
-          agentUsername: call.agentUsername ?? null,
-          agentExtension: call.agentExtension ?? null,
-          queueId: call.queueId ?? null,
-          queueName: call.queueName ?? null,
-          contactName: call.contactName ?? null,
-          contactFirstname: call.contactFirstname ?? null,
-          contactLastname: call.contactLastname ?? null,
-          accountName: call.accountName ?? null,
-          createdAt: Date.now(),
-        });
-        results.push({ callId: call.callId, id, isNew: true });
-      } else {
-        results.push({ callId: call.callId, id: existing._id, isNew: false });
-      }
+    await requireRole(ctx, "reviewer");
+    const call = await ctx.db.get(args.callId);
+    if (!call) {
+      throw new Error("Call not found");
     }
-    return results;
+
+    if (call.processingStatus === "analyzed") {
+      await revertStatsForCall(ctx, call.callId);
+    }
+
+    await ctx.db.patch(args.callId, {
+      processingStatus: "synced",
+      processingError: undefined,
+      lastProcessedAt: Date.now(),
+    });
   },
 });
 
 export const remove = mutation({
   args: { id: v.id("calls") },
   handler: async (ctx, args) => {
+    await requireRole(ctx, "admin");
     await ctx.db.delete(args.id);
   },
 });
