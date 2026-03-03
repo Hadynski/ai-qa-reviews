@@ -46,6 +46,7 @@ export default defineSchema({
     contactFirstname: v.union(v.string(), v.null()),
     contactLastname: v.union(v.string(), v.null()),
     accountName: v.union(v.string(), v.null()),
+    statusNames: v.optional(v.array(v.string())),
     processingStatus: v.string(),
     processingError: v.optional(v.string()),
     questionGroupId: v.optional(v.id("questionGroups")),

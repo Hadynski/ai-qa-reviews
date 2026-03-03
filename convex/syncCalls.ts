@@ -2,6 +2,7 @@ import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import { matchQuestionGroup } from "./questionGroups";
 
 interface DaktelaStatus {
   name: string;
@@ -273,12 +274,6 @@ export const saveCalls = internalMutation({
     ),
   },
   handler: async (ctx, args) => {
-    const questionGroups = await ctx.db
-      .query("questionGroups")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
-      .collect();
-    questionGroups.sort((a, b) => a.name.localeCompare(b.name));
-
     for (const call of args.calls) {
       const existing = await ctx.db
         .query("calls")
@@ -329,22 +324,14 @@ export const saveCalls = internalMutation({
           contactFirstname: call.contactFirstname,
           contactLastname: call.contactLastname,
           accountName: call.accountName,
+          statusNames: call.statusNames,
           processingStatus: "skipped",
           createdAt: Date.now(),
         });
         continue;
       }
 
-      let matchedGroupId: Id<"questionGroups"> | undefined;
-      for (const group of questionGroups) {
-        const hasMatchingStatus = call.statusNames.some((sn) =>
-          group.statusIds.includes(sn)
-        );
-        if (hasMatchingStatus) {
-          matchedGroupId = group._id;
-          break;
-        }
-      }
+      const matchedGroupId = await matchQuestionGroup(ctx, call.statusNames);
 
       await ctx.db.insert("calls", {
         callId: call.callId,
@@ -361,6 +348,7 @@ export const saveCalls = internalMutation({
         contactFirstname: call.contactFirstname,
         contactLastname: call.contactLastname,
         accountName: call.accountName,
+        statusNames: call.statusNames,
         processingStatus: matchedGroupId ? "synced" : "skipped",
         questionGroupId: matchedGroupId,
         createdAt: Date.now(),

@@ -19,7 +19,6 @@ import type * as daktelaStatuses from "../daktelaStatuses.js";
 import type * as http from "../http.js";
 import type * as migrations_backfillStats from "../migrations/backfillStats.js";
 import type * as migrations_binaryAnswers from "../migrations/binaryAnswers.js";
-import type * as migrations_seedQuestions from "../migrations/seedQuestions.js";
 import type * as migrations_seedSuperadmin from "../migrations/seedSuperadmin.js";
 import type * as pipeline from "../pipeline.js";
 import type * as promptFeedback from "../promptFeedback.js";
@@ -48,7 +47,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "migrations/backfillStats": typeof migrations_backfillStats;
   "migrations/binaryAnswers": typeof migrations_binaryAnswers;
-  "migrations/seedQuestions": typeof migrations_seedQuestions;
   "migrations/seedSuperadmin": typeof migrations_seedSuperadmin;
   pipeline: typeof pipeline;
   promptFeedback: typeof promptFeedback;

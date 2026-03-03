@@ -2,6 +2,7 @@ import { query, mutation, internalMutation, internalQuery } from "./_generated/s
 import { v } from "convex/values";
 import { requireAuth, requireRole } from "./authHelpers";
 import { revertStatsForCall } from "./stats";
+import { matchQuestionGroup } from "./questionGroups";
 
 export const list = query({
   args: {
@@ -206,9 +207,22 @@ export const reprocessCall = mutation({
       await revertStatsForCall(ctx, call.callId);
     }
 
+    const newGroupId = call.statusNames
+      ? await matchQuestionGroup(ctx, call.statusNames)
+      : call.questionGroupId;
+
+    const transcription = await ctx.db
+      .query("transcriptions")
+      .withIndex("by_call_id", (q) => q.eq("callId", call.callId))
+      .first();
+    if (transcription?.qaAnalysis) {
+      await ctx.db.patch(transcription._id, { qaAnalysis: undefined });
+    }
+
     await ctx.db.patch(args.callId, {
-      processingStatus: "synced",
-      processingError: undefined,
+      processingStatus: newGroupId ? "synced" : "skipped",
+      processingError: newGroupId ? undefined : "No matching question group",
+      questionGroupId: newGroupId,
       qaRetryCount: 0,
       lastProcessedAt: Date.now(),
     });
