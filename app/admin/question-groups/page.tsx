@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function QuestionGroupsPage() {
   const router = useRouter();
@@ -86,7 +87,16 @@ export default function QuestionGroupsPage() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => removeGroup({ id: group._id })}
+                      onClick={async () => {
+                        const result = await removeGroup({ id: group._id });
+                        if (result?.deactivated) {
+                          toast.warning(
+                            `Group deactivated (has ${result.questionsCount} questions). Delete its questions first to fully remove it.`
+                          );
+                        } else {
+                          toast.success("Group deleted.");
+                        }
+                      }}
                     >
                       Delete
                     </Button>
