@@ -188,13 +188,16 @@ export const onTranscriptionComplete = transcriptionPool.defineOnComplete({
         `[Pipeline] Transcription complete for ${context.callId}`
       );
     } else if (result.kind === "failed") {
+      const isNoRecording = result.error.includes("RECORDING_NOT_FOUND");
       await ctx.db.patch(context.callDocId, {
-        processingStatus: "failed",
-        processingError: `Transcription failed: ${formatPipelineError(result.error)}`,
+        processingStatus: isNoRecording ? "no_recording" : "failed",
+        processingError: isNoRecording
+          ? "Recording not available in Daktela (404)"
+          : `Transcription failed: ${formatPipelineError(result.error)}`,
         lastProcessedAt: Date.now(),
       });
       console.error(
-        `[Pipeline] Transcription failed for ${context.callId}: ${result.error}`
+        `[Pipeline] Transcription ${isNoRecording ? "skipped (no recording)" : "failed"} for ${context.callId}: ${result.error}`
       );
     } else if (result.kind === "canceled") {
       await ctx.db.patch(context.callDocId, {

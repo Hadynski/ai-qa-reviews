@@ -15,6 +15,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   analyzed: { label: "Analyzed", className: "bg-green-100 text-green-800" },
   failed: { label: "Failed", className: "bg-red-100 text-red-800" },
   skipped: { label: "Skipped", className: "bg-gray-100 text-gray-800" },
+  no_recording: {
+    label: "No Recording",
+    className: "bg-amber-100 text-amber-800",
+  },
 };
 
 export function StatusBadge({
