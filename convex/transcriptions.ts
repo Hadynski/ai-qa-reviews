@@ -46,6 +46,17 @@ export const getByCallIdInternal = internalQuery({
   },
 });
 
+export const getQaResultsInternal = internalQuery({
+  args: { callId: v.string() },
+  handler: async (ctx, args) => {
+    const transcription = await ctx.db
+      .query("transcriptions")
+      .withIndex("by_call_id", (q) => q.eq("callId", args.callId))
+      .first();
+    return transcription?.qaAnalysis?.results ?? null;
+  },
+});
+
 export const upsertTranscription = mutation({
   args: {
     callId: v.string(),

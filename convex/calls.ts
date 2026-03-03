@@ -202,13 +202,14 @@ export const reprocessCall = mutation({
       throw new Error("Call not found");
     }
 
-    if (call.processingStatus === "analyzed") {
+    if (call.processingStatus === "analyzed" || call.processingStatus === "partially_analyzed") {
       await revertStatsForCall(ctx, call.callId);
     }
 
     await ctx.db.patch(args.callId, {
       processingStatus: "synced",
       processingError: undefined,
+      qaRetryCount: 0,
       lastProcessedAt: Date.now(),
     });
   },

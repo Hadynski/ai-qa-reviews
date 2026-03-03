@@ -51,6 +51,7 @@ export default defineSchema({
     questionGroupId: v.optional(v.id("questionGroups")),
     qaScore: v.optional(v.number()),
     retryCount: v.optional(v.number()),
+    qaRetryCount: v.optional(v.number()),
     lastProcessedAt: v.optional(v.number()),
     createdAt: v.number(),
   })

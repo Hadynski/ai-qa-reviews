@@ -25,6 +25,23 @@ interface LangfuseClient {
   flushAsync?: () => Promise<void>;
 }
 
+interface QuestionData {
+  questionId: string;
+  question: string;
+  context: string;
+  referenceScript?: string;
+  goodExamples?: string[];
+  badExamples?: string[];
+  possibleAnswers: string[];
+}
+
+interface QaResult {
+  questionId: string;
+  question: string;
+  answer: string;
+  justification: string;
+}
+
 function mergeConsecutiveUtterances(utterances: Utterance[]): Utterance[] {
   if (utterances.length === 0) return [];
 
@@ -70,6 +87,185 @@ function extractRetryDelay(error: unknown): number | null {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function analyzeQuestion(
+  question: QuestionData,
+  formattedTranscript: string,
+  systemPrompt: string,
+  trace: LangfuseTrace | null,
+  logPrefix: string,
+): Promise<QaResult> {
+  const { google } = await import("@ai-sdk/google");
+  const { generateObject } = await import("ai");
+  const { z } = await import("zod");
+
+  const qaResponseSchema = z.object({
+    thought_process: z
+      .string()
+      .describe(
+        "Chain of thought analysis with quotes from transcription and logical reasoning"
+      ),
+    answer: z
+      .string()
+      .describe("The selected answer from the possible answers list"),
+    justification: z
+      .string()
+      .describe(
+        "One sentence explaining why this answer was chosen based on the transcription"
+      ),
+  });
+
+  const contextSection = question.context
+    ? `\n<rules>\n${question.context}\n</rules>\n`
+    : "";
+
+  const referenceSection = question.referenceScript
+    ? `\n<reference_script>\n${question.referenceScript}\n</reference_script>\n`
+    : "";
+
+  const goodExamplesSection = question.goodExamples?.length
+    ? `\n<examples_positive>\n${question.goodExamples.map((e) => `- "${e}"`).join("\n")}\n</examples_positive>\n`
+    : "";
+
+  const badExamplesSection = question.badExamples?.length
+    ? `\n<examples_negative>\n${question.badExamples.map((e) => `- "${e}"`).join("\n")}\n</examples_negative>\n`
+    : "";
+
+  const userPrompt = `<transcription>
+${formattedTranscript}
+</transcription>
+
+<question>
+${question.question}
+</question>
+${contextSection}${referenceSection}${goodExamplesSection}${badExamplesSection}
+<possible_answers>
+${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
+</possible_answers>`;
+
+  const modelName = "gemini-3-flash-preview";
+  const generation = trace?.generation({
+    name: `qa-question-${question.questionId}`,
+    model: modelName,
+    input: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    metadata: {
+      questionId: question.questionId,
+      question: question.question,
+      possibleAnswers: question.possibleAnswers,
+    },
+  }) as { end: (data: unknown) => void } | undefined;
+
+  try {
+    const maxRetries = 5;
+    const baseDelayMs = 5000;
+    let lastError: Error | null = null;
+    let object: { thought_process: string; answer: string; justification: string } | null = null;
+    let usage: { inputTokens: number; outputTokens: number; totalTokens: number } | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await generateObject({
+          model: google(modelName),
+          schema: qaResponseSchema,
+          system: systemPrompt,
+          prompt: userPrompt,
+          maxRetries: 0,
+        });
+        object = result.object;
+        usage = {
+          inputTokens: result.usage.inputTokens ?? 0,
+          outputTokens: result.usage.outputTokens ?? 0,
+          totalTokens: result.usage.totalTokens ?? 0,
+        };
+        break;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        const errorString = lastError.message + String(err);
+        const isProhibitedContent =
+          errorString.includes("PROHIBITED_CONTENT");
+
+        if (isProhibitedContent) {
+          throw new Error(
+            "Content blocked by safety filters (PROHIBITED_CONTENT)"
+          );
+        }
+
+        const isRetryable =
+          errorString.includes("overloaded") ||
+          errorString.includes("503") ||
+          errorString.includes("UNAVAILABLE") ||
+          errorString.includes("429") ||
+          errorString.includes("RESOURCE_EXHAUSTED") ||
+          errorString.includes("quota");
+
+        const isRateLimited =
+          errorString.includes("429") ||
+          errorString.includes("RESOURCE_EXHAUSTED");
+
+        if (isRetryable && attempt < maxRetries) {
+          const apiDelay = isRateLimited
+            ? extractRetryDelay(err)
+            : null;
+          const delayMs =
+            apiDelay ?? baseDelayMs * Math.pow(2, attempt - 1);
+          console.log(
+            `${logPrefix} Retry ${attempt}/${maxRetries} for question ${question.questionId}, waiting ${delayMs / 1000}s`
+          );
+          await delay(delayMs);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    if (!object || !usage) {
+      throw lastError || new Error("Failed to generate response");
+    }
+
+    generation?.end({
+      output: object,
+      usage: {
+        input: usage.inputTokens,
+        output: usage.outputTokens,
+        total: usage.totalTokens,
+      },
+    });
+
+    console.log(
+      `${logPrefix} ${question.questionId}: ${object.answer}`
+    );
+
+    return {
+      questionId: question.questionId,
+      question: question.question,
+      answer: object.answer,
+      justification: object.justification,
+    };
+  } catch (error) {
+    console.error(
+      `${logPrefix} Error analyzing ${question.questionId}:`,
+      error
+    );
+
+    generation?.end({
+      output: {
+        error:
+          error instanceof Error ? error.message : String(error),
+      },
+    });
+
+    return {
+      questionId: question.questionId,
+      question: question.question,
+      answer: "Error",
+      justification: `Failed to analyze: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 export const analyzeCall = internalAction({
   args: {
     callId: v.string(),
@@ -78,27 +274,7 @@ export const analyzeCall = internalAction({
   handler: async (
     ctx,
     args
-  ): Promise<{ success: boolean; resultsCount: number; errorCount: number }> => {
-    const { google } = await import("@ai-sdk/google");
-    const { generateObject } = await import("ai");
-    const { z } = await import("zod");
-
-    const qaResponseSchema = z.object({
-      thought_process: z
-        .string()
-        .describe(
-          "Chain of thought analysis with quotes from transcription and logical reasoning"
-        ),
-      answer: z
-        .string()
-        .describe("The selected answer from the possible answers list"),
-      justification: z
-        .string()
-        .describe(
-          "One sentence explaining why this answer was chosen based on the transcription"
-        ),
-    });
-
+  ): Promise<{ success: boolean; resultsCount: number; errorCount: number; failedQuestionIds: string[] }> => {
     const transcription = await ctx.runQuery(
       internal.transcriptions.getByCallIdInternal,
       { callId: args.callId }
@@ -180,156 +356,13 @@ export const analyzeCall = internalAction({
           ? group.systemPrompt.replaceAll("{{agentName}}", agentName ?? "")
           : `${group.systemPrompt}\n${agentInfo}`;
 
-        const contextSection = question.context
-          ? `\n<rules>\n${question.context}\n</rules>\n`
-          : "";
-
-        const referenceSection = question.referenceScript
-          ? `\n<reference_script>\n${question.referenceScript}\n</reference_script>\n`
-          : "";
-
-        const goodExamplesSection = question.goodExamples?.length
-          ? `\n<examples_positive>\n${question.goodExamples.map((e) => `- "${e}"`).join("\n")}\n</examples_positive>\n`
-          : "";
-
-        const badExamplesSection = question.badExamples?.length
-          ? `\n<examples_negative>\n${question.badExamples.map((e) => `- "${e}"`).join("\n")}\n</examples_negative>\n`
-          : "";
-
-        const userPrompt = `<transcription>
-${formattedTranscript}
-</transcription>
-
-<question>
-${question.question}
-</question>
-${contextSection}${referenceSection}${goodExamplesSection}${badExamplesSection}
-<possible_answers>
-${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
-</possible_answers>`;
-
-        const modelName = "gemini-3-flash-preview";
-        const generation = trace?.generation({
-          name: `qa-question-${question.questionId}`,
-          model: modelName,
-          input: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          metadata: {
-            questionId: question.questionId,
-            question: question.question,
-            possibleAnswers: question.possibleAnswers,
-          },
-        }) as { end: (data: unknown) => void } | undefined;
-
-        try {
-          const maxRetries = 5;
-          const baseDelayMs = 5000;
-          let lastError: Error | null = null;
-          let object: { thought_process: string; answer: string; justification: string } | null = null;
-          let usage: { inputTokens: number; outputTokens: number; totalTokens: number } | null = null;
-
-          for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-              const result = await generateObject({
-                model: google(modelName),
-                schema: qaResponseSchema,
-                system: systemPrompt,
-                prompt: userPrompt,
-                maxRetries: 0,
-              });
-              object = result.object;
-              usage = {
-                inputTokens: result.usage.inputTokens ?? 0,
-                outputTokens: result.usage.outputTokens ?? 0,
-                totalTokens: result.usage.totalTokens ?? 0,
-              };
-              break;
-            } catch (err) {
-              lastError = err instanceof Error ? err : new Error(String(err));
-
-              const errorString = lastError.message + String(err);
-              const isProhibitedContent =
-                errorString.includes("PROHIBITED_CONTENT");
-
-              if (isProhibitedContent) {
-                throw new Error(
-                  "Content blocked by safety filters (PROHIBITED_CONTENT)"
-                );
-              }
-
-              const isRetryable =
-                errorString.includes("overloaded") ||
-                errorString.includes("503") ||
-                errorString.includes("UNAVAILABLE") ||
-                errorString.includes("429") ||
-                errorString.includes("RESOURCE_EXHAUSTED") ||
-                errorString.includes("quota");
-
-              const isRateLimited =
-                errorString.includes("429") ||
-                errorString.includes("RESOURCE_EXHAUSTED");
-
-              if (isRetryable && attempt < maxRetries) {
-                const apiDelay = isRateLimited
-                  ? extractRetryDelay(err)
-                  : null;
-                const delayMs =
-                  apiDelay ?? baseDelayMs * Math.pow(2, attempt - 1);
-                console.log(
-                  `[AnalyzeCall] Retry ${attempt}/${maxRetries} for question ${question.questionId}, waiting ${delayMs / 1000}s`
-                );
-                await delay(delayMs);
-              } else {
-                throw err;
-              }
-            }
-          }
-
-          if (!object || !usage) {
-            throw lastError || new Error("Failed to generate response");
-          }
-
-          generation?.end({
-            output: object,
-            usage: {
-              input: usage.inputTokens,
-              output: usage.outputTokens,
-              total: usage.totalTokens,
-            },
-          });
-
-          console.log(
-            `[AnalyzeCall] Q${i + 1}/${questions.length} ${question.questionId}: ${object.answer}`
-          );
-
-          return {
-            questionId: question.questionId,
-            question: question.question,
-            answer: object.answer,
-            justification: object.justification,
-          };
-        } catch (error) {
-          console.error(
-            `[AnalyzeCall] Error analyzing ${question.questionId}:`,
-            error
-          );
-
-          generation?.end({
-            output: {
-              error:
-                error instanceof Error ? error.message : String(error),
-            },
-          });
-
-          return {
-            questionId: question.questionId,
-            question: question.question,
-            answer: "Error",
-            justification: `Failed to analyze: ${error instanceof Error ? error.message : String(error)}`,
-          };
-        }
+        return analyzeQuestion(
+          question,
+          formattedTranscript,
+          systemPrompt,
+          trace,
+          `[AnalyzeCall] Q${i + 1}/${questions.length}`,
+        );
       })
     );
 
@@ -355,16 +388,129 @@ ${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
     }
 
     const errorCount = results.filter((r) => r.answer === "Error").length;
-    if (errorCount === results.length && results.length > 0) {
-      throw new Error(
-        "All questions failed analysis - content may be blocked by safety filters"
-      );
-    }
+
+    const failedQuestionIds = results
+      .filter((r) => r.answer === "Error")
+      .map((r) => r.questionId);
 
     console.log(
       `[AnalyzeCall] Completed analysis for ${args.callId}: ${results.length} questions, ${errorCount} errors`
     );
 
-    return { success: true, resultsCount: results.length, errorCount };
+    return { success: true, resultsCount: results.length, errorCount, failedQuestionIds };
+  },
+});
+
+export const retryPartialAnalysis = internalAction({
+  args: {
+    callId: v.string(),
+    questionGroupId: v.id("questionGroups"),
+    failedQuestionIds: v.array(v.string()),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ success: boolean; retriedCount: number; totalCount: number; errorCount: number; failedQuestionIds: string[] }> => {
+    const transcription = await ctx.runQuery(
+      internal.transcriptions.getByCallIdInternal,
+      { callId: args.callId }
+    );
+
+    if (!transcription) {
+      throw new Error(`Transcription not found for callId: ${args.callId}`);
+    }
+
+    const call = await ctx.runQuery(internal.calls.getByCallIdInternal, {
+      callId: args.callId,
+    });
+
+    const group = await ctx.runQuery(internal.questionGroups.getInternal, {
+      id: args.questionGroupId,
+    });
+
+    if (!group) {
+      throw new Error(`Question group not found: ${args.questionGroupId}`);
+    }
+
+    const allQuestions = await ctx.runQuery(
+      internal.questions.listActiveByGroupInternal,
+      { groupId: args.questionGroupId }
+    );
+
+    const failedSet = new Set(args.failedQuestionIds);
+    const questionsToRetry = allQuestions.filter((q) => failedSet.has(q.questionId));
+
+    if (questionsToRetry.length === 0) {
+      return { success: true, retriedCount: 0, totalCount: 0, errorCount: 0, failedQuestionIds: [] };
+    }
+
+    const formattedTranscript = transcription.utterances?.length
+      ? formatUtterancesAsDialog(transcription.utterances)
+      : transcription.text;
+
+    let agentName: string | null = null;
+    if (call?.agentId) {
+      const agent = await ctx.runQuery(internal.agents.getInternal, {
+        id: call.agentId,
+      });
+      if (agent) agentName = agent.displayName;
+    }
+    const agentInfo = agentName
+      ? `Agent prowadzacy rozmowe: ${agentName}.\n`
+      : "";
+
+    console.log(
+      `[RetryPartialAnalysis] Retrying ${questionsToRetry.length} failed questions for ${args.callId}`
+    );
+
+    const retryResults = await Promise.all(
+      questionsToRetry.map(async (question, i) => {
+        const systemPrompt = group.systemPrompt.includes("{{agentName}}")
+          ? group.systemPrompt.replaceAll("{{agentName}}", agentName ?? "")
+          : `${group.systemPrompt}\n${agentInfo}`;
+
+        return analyzeQuestion(
+          question,
+          formattedTranscript,
+          systemPrompt,
+          null,
+          `[RetryPartialAnalysis] Q${i + 1}/${questionsToRetry.length}`,
+        );
+      })
+    );
+
+    const existingResults = await ctx.runQuery(
+      internal.transcriptions.getQaResultsInternal,
+      { callId: args.callId }
+    );
+
+    const retryResultMap = new Map(
+      retryResults.map((r) => [r.questionId, r])
+    );
+
+    const mergedResults = (existingResults ?? []).map((existing) =>
+      retryResultMap.has(existing.questionId)
+        ? retryResultMap.get(existing.questionId)!
+        : existing
+    );
+
+    await ctx.runMutation(internal.transcriptions.saveQaAnalysisInternal, {
+      callId: args.callId,
+      qaAnalysis: {
+        completedAt: Date.now(),
+        results: mergedResults,
+      },
+    });
+
+    const errorCount = mergedResults.filter((r) => r.answer === "Error").length;
+    const failedQuestionIds = mergedResults
+      .filter((r) => r.answer === "Error")
+      .map((r) => r.questionId);
+
+    console.log(
+      `[RetryPartialAnalysis] Completed for ${args.callId}: ${retryResults.length} retried, ${errorCount} still failing`
+    );
+
+    return { success: true, retriedCount: retryResults.length, totalCount: mergedResults.length, errorCount, failedQuestionIds };
   },
 });

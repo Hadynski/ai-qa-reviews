@@ -19,6 +19,14 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     label: "No Recording",
     className: "bg-amber-100 text-amber-800",
   },
+  partially_analyzed: {
+    label: "Partial Errors",
+    className: "bg-orange-100 text-orange-800",
+  },
+  retrying_analysis: {
+    label: "Retrying Analysis",
+    className: "bg-yellow-100 text-yellow-800",
+  },
 };
 
 export function StatusBadge({

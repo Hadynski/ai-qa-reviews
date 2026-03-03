@@ -149,7 +149,8 @@ export default function PipelineDashboard() {
                   <td className="p-3 text-right">
                     {(call.processingStatus === "analyzed" ||
                       call.processingStatus === "failed" ||
-                      call.processingStatus === "no_recording") && (
+                      call.processingStatus === "no_recording" ||
+                      call.processingStatus === "partially_analyzed") && (
                       <Button
                         variant="secondary"
                         size="sm"
