@@ -771,6 +771,16 @@ export default function CallDetailPage({
         </Card>
       )}
 
+      {call.processingStatus === "no_recording" && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-6">
+            <p className="text-sm font-medium text-amber-800">
+              {call.processingError ?? "Recording not available in Daktela (404)"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Audio Player */}
       <Card>
         <CardHeader>

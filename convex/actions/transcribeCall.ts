@@ -223,6 +223,9 @@ export const transcribeCall = internalAction({
     });
 
     if (!audioResponse.ok) {
+      if (audioResponse.status === 404) {
+        throw new Error("RECORDING_NOT_FOUND");
+      }
       throw new Error(
         `Failed to fetch audio: ${audioResponse.status} ${audioResponse.statusText}`
       );
