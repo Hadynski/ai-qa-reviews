@@ -28,6 +28,8 @@ export function Navbar() {
   const pathname = usePathname();
   const { user, isLoading, isAdmin, role } = useCurrentUser();
 
+  if (pathname === "/login") return null;
+
   const navItems = isAdmin
     ? [...publicNavItems, ...adminNavItems]
     : publicNavItems;
