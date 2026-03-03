@@ -225,6 +225,60 @@ ${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
       throw lastError || new Error("Failed to generate response");
     }
 
+    const isValidAnswer = question.possibleAnswers.includes(object.answer);
+
+    if (!isValidAnswer) {
+      console.warn(
+        `${logPrefix} ${question.questionId}: invalid answer "${object.answer}", retrying`
+      );
+
+      try {
+        const retryResult = await generateObject({
+          model: google(modelName),
+          schema: qaResponseSchema,
+          system: systemPrompt,
+          prompt: userPrompt,
+          maxRetries: 0,
+        });
+
+        const retryValid = question.possibleAnswers.includes(
+          retryResult.object.answer
+        );
+
+        if (retryValid) {
+          object = retryResult.object;
+          usage = {
+            inputTokens: retryResult.usage.inputTokens ?? 0,
+            outputTokens: retryResult.usage.outputTokens ?? 0,
+            totalTokens: retryResult.usage.totalTokens ?? 0,
+          };
+        } else {
+          console.warn(
+            `${logPrefix} ${question.questionId}: retry also invalid "${retryResult.object.answer}", defaulting to "Nie"`
+          );
+          object = {
+            ...retryResult.object,
+            answer: "Nie",
+            justification: `${retryResult.object.justification} [auto-corrected from: "${retryResult.object.answer}"]`,
+          };
+          usage = {
+            inputTokens: retryResult.usage.inputTokens ?? 0,
+            outputTokens: retryResult.usage.outputTokens ?? 0,
+            totalTokens: retryResult.usage.totalTokens ?? 0,
+          };
+        }
+      } catch {
+        console.warn(
+          `${logPrefix} ${question.questionId}: validation retry failed, defaulting to "Nie"`
+        );
+        object = {
+          ...object,
+          answer: "Nie",
+          justification: `${object.justification} [auto-corrected from: "${object.answer}"]`,
+        };
+      }
+    }
+
     generation?.end({
       output: object,
       usage: {
