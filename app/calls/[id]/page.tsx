@@ -2,7 +2,7 @@
 
 import { use, useState, useMemo } from "react";
 import Link from "next/link";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { EyeIcon, MessageSquarePlusIcon } from "lucide-react";
+import { EyeIcon, MessageSquarePlusIcon, RefreshCwIcon } from "lucide-react";
 import { toast } from "sonner";
 
 function formatDuration(seconds: number | null | undefined): string {
@@ -402,6 +402,8 @@ function QaAnalysisSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [promptDetailId, setPromptDetailId] = useState<string | null>(null);
   const [feedbackFormId, setFeedbackFormId] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const retryQuestion = useAction(api.actions.analyzeCall.retrySingleQuestion);
   const questionsMap = new Map(questions?.map((q) => [q.questionId, q]));
 
   const feedbackByQuestion = useMemo(() => {
@@ -440,6 +442,40 @@ function QaAnalysisSection({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <AnswerBadge answer={result.answer} />
+                  {isReviewer && result.answer === "Error" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      disabled={retryingId === result.questionId}
+                      onClick={async () => {
+                        setRetryingId(result.questionId);
+                        try {
+                          const res = await retryQuestion({
+                            callId,
+                            questionId: result.questionId,
+                          });
+                          if (res.success) {
+                            toast.success(`Retried: ${res.answer}`);
+                          } else {
+                            toast.error(`Retry failed: ${res.justification}`);
+                          }
+                        } catch {
+                          toast.error("Failed to retry question");
+                        } finally {
+                          setRetryingId(null);
+                        }
+                      }}
+                      title="Retry analysis"
+                    >
+                      <RefreshCwIcon
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          retryingId === result.questionId && "animate-spin"
+                        )}
+                      />
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"

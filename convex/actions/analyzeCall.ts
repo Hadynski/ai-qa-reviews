@@ -1,8 +1,9 @@
 "use node";
 
-import { internalAction } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { requireRole } from "../authHelpers";
 
 interface Utterance {
   speaker: number;
@@ -86,6 +87,21 @@ function extractRetryDelay(error: unknown): number | null {
 }
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function extractJsonFromText(text: string): unknown | null {
+  const lastOpen = text.lastIndexOf("{");
+  if (lastOpen === -1) return null;
+
+  for (let end = text.length; end > lastOpen; end--) {
+    if (text[end - 1] !== "}") continue;
+    try {
+      return JSON.parse(text.slice(lastOpen, end));
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 
 async function analyzeQuestion(
   question: QuestionData,
@@ -193,7 +209,41 @@ ${question.possibleAnswers.map((a) => `- ${a}`).join("\n")}
           );
         }
 
+        const isNoObjectError =
+          errorString.includes("AI_NoObjectGeneratedError") ||
+          errorString.includes("No object generated");
+
+        if (isNoObjectError) {
+          const rawText = (err as { text?: string }).text ?? "";
+          const extracted = extractJsonFromText(rawText);
+          if (
+            extracted &&
+            typeof extracted === "object" &&
+            "answer" in (extracted as Record<string, unknown>) &&
+            "justification" in (extracted as Record<string, unknown>)
+          ) {
+            const parsed = extracted as { thought_process?: string; answer: string; justification: string };
+            console.log(
+              `${logPrefix} ${question.questionId}: recovered JSON from unparseable response, answer="${parsed.answer}"`
+            );
+            object = {
+              thought_process: parsed.thought_process ?? "",
+              answer: parsed.answer,
+              justification: parsed.justification,
+            };
+            usage = (err as { usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number } }).usage
+              ? {
+                  inputTokens: (err as { usage: { inputTokens?: number } }).usage.inputTokens ?? 0,
+                  outputTokens: (err as { usage: { outputTokens?: number } }).usage.outputTokens ?? 0,
+                  totalTokens: (err as { usage: { totalTokens?: number } }).usage.totalTokens ?? 0,
+                }
+              : { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+            break;
+          }
+        }
+
         const isRetryable =
+          isNoObjectError ||
           errorString.includes("overloaded") ||
           errorString.includes("503") ||
           errorString.includes("UNAVAILABLE") ||
@@ -566,5 +616,111 @@ export const retryPartialAnalysis = internalAction({
     );
 
     return { success: true, retriedCount: retryResults.length, totalCount: mergedResults.length, errorCount, failedQuestionIds };
+  },
+});
+
+export const retrySingleQuestion = action({
+  args: {
+    callId: v.string(),
+    questionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, "reviewer");
+
+    const call = await ctx.runQuery(internal.calls.getByCallIdInternal, {
+      callId: args.callId,
+    });
+    if (!call) {
+      throw new Error(`Call not found for callId: ${args.callId}`);
+    }
+    if (!call.questionGroupId) {
+      throw new Error("Call has no question group assigned");
+    }
+
+    const transcription = await ctx.runQuery(
+      internal.transcriptions.getByCallIdInternal,
+      { callId: args.callId }
+    );
+    if (!transcription) {
+      throw new Error(`Transcription not found for callId: ${args.callId}`);
+    }
+
+    const group = await ctx.runQuery(internal.questionGroups.getInternal, {
+      id: call.questionGroupId,
+    });
+    if (!group) {
+      throw new Error(`Question group not found: ${call.questionGroupId}`);
+    }
+
+    const allQuestions = await ctx.runQuery(
+      internal.questions.listActiveByGroupInternal,
+      { groupId: call.questionGroupId }
+    );
+    const question = allQuestions.find(
+      (q) => q.questionId === args.questionId
+    );
+    if (!question) {
+      throw new Error(`Question ${args.questionId} not found in group`);
+    }
+
+    const existingResults = await ctx.runQuery(
+      internal.transcriptions.getQaResultsInternal,
+      { callId: args.callId }
+    );
+    if (!existingResults) {
+      throw new Error("No existing QA results to retry against");
+    }
+
+    const existingResult = existingResults.find(
+      (r) => r.questionId === args.questionId
+    );
+    if (!existingResult || existingResult.answer !== "Error") {
+      throw new Error("Question is not in Error state");
+    }
+
+    const formattedTranscript = transcription.utterances?.length
+      ? formatUtterancesAsDialog(transcription.utterances)
+      : transcription.text;
+
+    let agentName: string | null = null;
+    if (call.agentId) {
+      const agent = await ctx.runQuery(internal.agents.getInternal, {
+        id: call.agentId,
+      });
+      if (agent) agentName = agent.displayName;
+    }
+    const agentInfo = agentName
+      ? `Agent prowadzacy rozmowe: ${agentName}.\n`
+      : "";
+
+    const systemPrompt = group.systemPrompt.includes("{{agentName}}")
+      ? group.systemPrompt.replaceAll("{{agentName}}", agentName ?? "")
+      : `${group.systemPrompt}\n${agentInfo}`;
+
+    const retryResult = await analyzeQuestion(
+      question,
+      formattedTranscript,
+      systemPrompt,
+      null,
+      `[RetrySingleQuestion] ${args.questionId}`,
+    );
+
+    const mergedResults = existingResults.map((existing) =>
+      existing.questionId === args.questionId ? retryResult : existing
+    );
+
+    await ctx.runMutation(internal.transcriptions.saveQaAnalysisInternal, {
+      callId: args.callId,
+      qaAnalysis: {
+        completedAt: Date.now(),
+        results: mergedResults,
+      },
+    });
+
+    return {
+      success: retryResult.answer !== "Error",
+      answer: retryResult.answer,
+      justification: retryResult.justification,
+    };
   },
 });
